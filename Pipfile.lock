@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "930c7aa602c2abc476de4c6fdd94d5ed7d67054a33897a0d1555bbf67dc3dcd6"
+            "sha256": "57be1b703d41017860748f4e3cefa0ede59ad0d07a4cb24ac8c34ef606642caa"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -55,6 +55,14 @@
             "index": "pypi",
             "version": "==2.2.2"
         },
+        "more-itertools": {
+            "hashes": [
+                "sha256:1a2a32c72400d365000412fe08eb4a24ebee89997c18d3d147544f70f5403b39",
+                "sha256:c468adec578380b6281a114cb8a5db34eb1116277da92d7c46f904f0b52d3288"
+            ],
+            "index": "pypi",
+            "version": "==8.1.0"
+        },
         "python-box": {
             "hashes": [
                 "sha256:694a7555e3ff9fbbce734bbaef3aad92b8e4ed0659d3ed04d56b6a0a0eff26a9",
@@ -67,6 +75,7 @@
                 "sha256:debd928b49dbc2bf68040566f55cdb3252458036464806f4094487244e2a4093",
                 "sha256:f157d71d5fec9d4bd5f51c82746b6344dffa680ee85217c123f4a0c8117c4544"
             ],
+            "index": "pypi",
             "version": "==0.10.3"
         },
         "toml": {
@@ -128,6 +137,7 @@
                 "sha256:1a2a32c72400d365000412fe08eb4a24ebee89997c18d3d147544f70f5403b39",
                 "sha256:c468adec578380b6281a114cb8a5db34eb1116277da92d7c46f904f0b52d3288"
             ],
+            "index": "pypi",
             "version": "==8.1.0"
         },
         "mypy": {
