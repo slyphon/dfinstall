@@ -1,0 +1,39 @@
+[default]
+
+# if a link path already exists and is a file, employ
+# the given strategy for resolving the conflict.
+#
+# 'backup': move the file to a unique dated backup
+# location and create the symlink
+#
+# 'delete': just delete the file and create the symlink
+#
+# 'warn': then print a warning that the conflict exists and
+# continue.
+#
+# 'fail': then stop processing and report an error.
+#
+conflicting_file_strategy = 'backup'
+
+# if the link path already exists and is a symlink, employ
+# one of the following strategies:
+#
+# 'replace': assume we own the symlink and recreate it pointing
+# to the target
+#
+# 'warn': print a warning that the conflict exists and continue
+#
+# 'fail': stop processing and report an error
+conflicting_symlink_strategy = 'replace'
+
+
+[default.dotfiles]
+
+include_globs = ['dotfiles/*']
+exclude_globs = []
+
+
+[default.binfiles]
+
+include_globs = ['bin/*']
+exclude_globs = []
