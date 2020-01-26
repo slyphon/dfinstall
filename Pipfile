@@ -6,6 +6,9 @@ verify_ssl = true
 [dev-packages]
 pytest = "*"
 pipenv-pex = "*"
+yapf = "*"
+isort = "*"
+mypy = "*"
 
 [packages]
 dynaconf = "*"

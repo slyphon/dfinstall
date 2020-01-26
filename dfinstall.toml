@@ -26,6 +26,12 @@ conflicting_file_strategy = 'backup'
 # 'fail': stop processing and report an error
 conflicting_symlink_strategy = 'replace'
 
+# The desired location of the symlinks. the default is
+# the special value %CWD_PARENT% which indicates the parent
+# of the current working directory should be used. Otherwise
+# this must point to a valid and existing absolute path to a
+# directory
+dest_dir = '%CWD_PARENT%'
 
 [default.dotfiles]
 

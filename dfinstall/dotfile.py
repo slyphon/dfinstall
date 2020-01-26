@@ -1,7 +1,7 @@
 from pathlib import Path
 import attr
 
-@attr.s(slots=True, frozen=True, auto_attrs=True)
+@attr.s(slots=True, frozen=True, auto_attribs=True)
 class Dotfile:
   # the "versioned" file, kept in source control
   # to which the link will point

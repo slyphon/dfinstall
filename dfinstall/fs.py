@@ -1,13 +1,17 @@
+from typing import List
 import sys
 import os
 import os.path as osp
 from stat import *
 from pathlib import Path
 import json
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def handle_rename(p: Path):
-  debug(f"handle_rename for p: {p}, p.exists: {p.exists()}")
+  log.debug(f"handle_rename for p: {p}, p.exists: {p.exists()}")
 
   if p.exists():
     for n in range(0, 100):
@@ -46,7 +50,7 @@ def chase_links(link: Path):
     depth += 1
     if not is_link(cur):
       return cur
-    cur = osp.normpath(osp.join(cur.parent, os.readlink(cur)))
+    cur = Path(osp.normpath(osp.join(cur.parent, os.readlink(cur))))
   else:
     raise RuntimeError(f"stack level too deep, couldn't find {link} after {depth} tries")
 
@@ -61,7 +65,7 @@ def link_points_to(link: Path, target: Path):
     pass
 
 
-def do_the_symlinking(top_dir, dotfiles=DOTFILES):
+def do_the_symlinking(top_dir, dotfiles: List[Path]):
   for df in dotfiles:
     # the thing the link will point *to*
     target = Path(top_dir) / df
