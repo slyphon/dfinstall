@@ -7,7 +7,6 @@ from typing import List, Iterable, Callable
 import attr
 import click
 from dotenv import load_dotenv, find_dotenv
-from more_itertools import collapse
 
 VALID_FILE_STRATEGIES = ['backup', 'delete', 'warn', 'fail']
 VALID_SYMLINK_STRATEGIES = ['replace', 'warn', 'fail']
@@ -28,20 +27,6 @@ class Config:
   @classmethod
   def from_settings(cls, s):
     pass
-
-def any(pred: Callable[[str], bool], excludes: Iterable[str]) -> bool:
-  for ex in excludes:
-    if pred(ex):
-      return True
-  return False
-
-
-def collect_dotfiles(base_dir: Path, dotfile_dirs: List[Path], dotfiles: List[str], dotfile_excludes: List[str]):
-  dotfile_dirents = [Path(dfd).iterdir() for dfd in dotfile_dirs]
-  dfs = list(collapse(dotfile_dirents, base_type=Path))
-  filtered = [df for df in dfs if not any(df.match, dotfile_excludes)]
-  filtered.extend(list(collapse([Path(base_dir).glob(p) for p in dotfiles], base_type=Path)))
-  return filtered
 
 
 @click.command()
