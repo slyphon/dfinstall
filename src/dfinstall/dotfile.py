@@ -1,8 +1,8 @@
+import logging
+from functools import partial
+from itertools import chain, filterfalse
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, TypeVar, cast
-from itertools import chain, filterfalse
-from functools import partial
-import logging
 
 import attr
 from more_itertools import collapse
@@ -47,13 +47,20 @@ def collect(base_dir: Path, dirs: List[Path], globs: Optional[List[str]] = None,
 
 _ROOT = Path('/')
 
+def _assert_is_absolute(a: Path):
+  if not a.is_absolute():
+    raise ValueError(f"argument must be an absolute Path, got {a}")
+
 def find_common_root(a: Path, b: Path) -> Optional[Path]:
+  _assert_is_absolute(a)
+  _assert_is_absolute(b)
+
   while True:
     log.debug(f"a: {a}, b: {b}")
-    if a == b:
-      return a
-    elif a == _ROOT or b == _ROOT:
+    if a == _ROOT or b == _ROOT:
       return None
+    elif a == b:
+      return a
     elif len(a.parts) > len(b.parts):
       a = a.parent
     elif len(a.parts) < len(b.parts):

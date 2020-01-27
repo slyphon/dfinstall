@@ -10,9 +10,10 @@ yapf = "*"
 isort = "*"
 mypy = "*"
 wheel = "*"
+pytest-watch = "*"
+pytest-mock = "*"
 
 [packages]
-dynaconf = "*"
 click = "*"
 attr = "*"
 cattrs = "*"

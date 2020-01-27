@@ -16,20 +16,6 @@ def copy_fn(src, dst, *a, **kw):
   copy2(src, dst, *a, **kw)
 
 
-@pytest.fixture()
-def staged(tmpdir):
-  tempdir = Path(tmpdir)
-  base_dir = tempdir / 'base'
-  safermtree(base_dir)
-  settings_dir = base_dir / 'settings'
-
-  copytree(
-    THIS_DIR.parent, settings_dir, copy_function=copy_fn, ignore=ignore_patterns('.*', '__*__')
-  )
-  yield settings_dir
-  safermtree(base_dir)
-
-
 def assert_symlink_same_file(link: Path, target: Path):
   assert link.samefile(target)
 
