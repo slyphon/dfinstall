@@ -9,6 +9,7 @@ pipenv-pex = "*"
 yapf = "*"
 isort = "*"
 mypy = "*"
+wheel = "*"
 
 [packages]
 dynaconf = "*"
