@@ -209,4 +209,4 @@ def main(
 
 if __name__ == '__main__':
   load_dotenv(find_dotenv())
-  main(auto_envvar_prefix="DFINSTALL")
+  main(auto_envvar_prefix="DFI")

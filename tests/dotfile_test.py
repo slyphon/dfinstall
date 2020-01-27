@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from dfinstall.dotfile import find_common_root, LinkData
+from dfi.dotfile import find_common_root, LinkData
 
 
 def test_find_common_root():

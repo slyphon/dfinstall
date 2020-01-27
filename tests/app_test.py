@@ -12,8 +12,8 @@ import cattr
 import pytest
 from click.testing import CliRunner, Result
 
-from dfinstall import app
-from dfinstall.config import Settings, FileGroup
+from dfi import app
+from dfi.config import Settings, FileGroup
 
 T = TypeVar('T')
 

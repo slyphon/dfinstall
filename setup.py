@@ -5,7 +5,7 @@ from glob import glob
 from os.path import basename, dirname, join, splitext
 
 setup(
-  name='dfinstall',
+  name='dfi',
   version='0.1.0',
   license='BSD-3-Clause',
   description="dotfile symlink manager",

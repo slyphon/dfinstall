@@ -1,7 +1,7 @@
 import cattr
 from pathlib import Path
 from typing import Type, Any, TypeVar
-from dfinstall.config import FileGroup, Settings
+from dfi.config import FileGroup, Settings
 import json
 
 BASE_DIR = Path("/home/foo/settings")
