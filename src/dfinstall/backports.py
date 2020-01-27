@@ -1,3 +1,5 @@
+from threading import RLock
+
 _NOT_FOUND = object()
 
 # backported from 3.8 functools

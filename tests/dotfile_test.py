@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from dfinstall.dotfile import find_common_root
+from dfinstall.dotfile import find_common_root, LinkData
 
 
 def test_find_common_root():
@@ -17,3 +17,13 @@ def test_find_common_root():
 
   with pytest.raises(ValueError):
     find_common_root(Path("/a/b/c"), Path("a/b/c"))
+
+
+def test_BinLinkData_relative():
+  vpath = Path("/Users/foo/.settings/bin/bar")
+  target_dir = Path("/Users/foo/.local/bin")
+
+  bld = LinkData.for_path(vpath, target_dir)
+
+  assert bld.link_path == Path("/Users/foo/.local/bin/bar")
+  assert bld.link_data == Path("../../.settings/bin/bar")

@@ -112,7 +112,7 @@ def main(
   output_flag_settings: Optional[TextIO]
 ):
   """\
-    The purpose of this app is to keep configuration files and directories
+    The purpose of this utility is to keep configuration files and directories
     under source control in a single directory, then symlink them into place.
     This program will by default look in the current working directory for a
     directory named 'dotfiles', and will create symlinks to all of them in the
@@ -186,12 +186,14 @@ def main(
     conflicting_file_strategy=file_strategy,
     conflicting_symlink_strategy=symlink_strategy,
     dotfiles_file_group=FileGroup(
+      base_dir=base_path,
       dirs=dotfile_dirs,
       globs=dotfiles,
       excludes=dotfile_excludes,
       target_dir=dotfile_target_dir
     ),
     binfiles_file_group=FileGroup(
+      base_dir=base_path,
       dirs=binfile_dirs,
       globs=binfiles,
       excludes=binfile_excludes,
