@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from dfi.dotfile import find_common_root, LinkData
+from dfi.dotfile import LinkData, find_common_root
 
 
 def test_find_common_root():
@@ -36,3 +36,12 @@ def test_LinkData_absolute():
 
   assert bld.link_path == Path("/Volumes/blah/.local/bin/bar")
   assert bld.link_data == Path("/Users/foo/.settings/bin/bar")
+
+def test_LinkData_with_prefix():
+  vpath = Path("/Users/foo/.settings/dotfiles/bar")
+  target_dir = Path("/Users/foo")
+
+  bld = LinkData.for_path(vpath, target_dir, prefix='.')
+
+  assert bld.link_path == Path("/Users/foo/.bar")
+  assert bld.link_data == Path(".settings/dotfiles/bar")

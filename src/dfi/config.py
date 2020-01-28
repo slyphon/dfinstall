@@ -2,6 +2,7 @@ from pathlib import Path
 from functools import partial
 from typing import Callable, Iterable, List, Optional, Type, cast, TypeVar, Any
 from typing_extensions import Final
+from itertools import chain
 
 import attr
 import cattr
@@ -9,6 +10,7 @@ from typing_extensions import Literal
 
 from .backports import cached_property
 from . import dotfile
+from .dotfile import LinkData
 
 TFileStrategies = Literal['backup', 'delete', 'warn', 'fail']
 TSymlinkStrategies = Literal['replace', 'warn', 'fail']
@@ -26,16 +28,17 @@ def _literal_value_assertion(valid: List[T], obj: Any) -> T:
     raise ValueError(f"{obj} is not a valid value: {valid!r}")
 
 
-_file_strategy_validator: Callable[[Any],
-                                   T] = partial(_literal_value_assertion, VALID_FILE_STRATEGIES)
+_file_strategy_validator: Callable[[Any], T] = \
+  partial(_literal_value_assertion, VALID_FILE_STRATEGIES)
 
-_symlink_strategy_validator: Callable[
-  [Any], T] = partial(_literal_value_assertion, VALID_SYMLINK_STRATEGIES)
+
+_symlink_strategy_validator: Callable[[Any], T] = \
+  partial(_literal_value_assertion, VALID_SYMLINK_STRATEGIES)
 
 DEFAULT_EXCLUDES: Final[List[str]] = ['.*']
 
 
-@attr.s(slots=True, frozen=True, auto_attribs=True)
+@attr.s(frozen=True, slots=True, auto_attribs=True)
 class FileGroup:
   # the version-controlled directory that contains the files-to-symlink
   base_dir: Path
@@ -44,7 +47,7 @@ class FileGroup:
   dirs: List[Path]
 
   # path globs that are relative to the base_dir that will be added to the list of files
-  globs: Optional[List[str]]
+  globs: Optional[List[str]] = attr.ib()
 
   # fnmatch globs that will be used to exclude items from the collected list
   excludes: Optional[List[str]]
@@ -52,20 +55,41 @@ class FileGroup:
   # an absolute path where the symlinks to this FileGroup's files will be created
   target_dir: Path
 
-  def collect_paths(self) -> List[Path]:
+  # the prefix to use for the link path (i.e. '.')
+  link_prefix: str = attr.ib(default='')
+
+  def evolve(self, **kw) -> 'FileGroup':
+    return attr.evolve(self, **kw)
+
+  @globs.validator
+  def __glob_validator(self, _ignored, value):
+    if value is None:
+      return
+    for v in value:
+      if not isinstance(v, str):
+        raise TypeError(f"globs must be strings, not {type(v)}, value: {v!r}")
+
+
+  @property
+  def vpaths(self) -> List[Path]:
     """return a collection of absolute source paths to be symlinked
     collects from both dirs and globs and applies the excludes before returning
     """
     return dotfile.collect(self.base_dir, self.dirs, self.globs, self.excludes)
 
+  @property
+  def link_data(self) -> List[LinkData]:
+    return [LinkData.for_path(vpath, self.target_dir, self.link_prefix) for vpath in self.vpaths]
+
   @classmethod
-  def _defaults(cls, base_dir: Path, target_dir: Path, dirs: Optional[List[Path]]) -> 'FileGroup':
+  def _defaults(cls, base_dir: Path, target_dir: Path, dirs: List[Path], prefix: str) -> 'FileGroup':
     return cls(
       base_dir=base_dir,
       target_dir=target_dir,
-      dirs=[Path('dotfiles')] if dirs is None else dirs,
+      dirs=dirs,
       excludes=DEFAULT_EXCLUDES[:],
       globs=None,
+      link_prefix=prefix,
     )
 
   @classmethod
@@ -75,19 +99,26 @@ class FileGroup:
       base_dir=base_dir,
       target_dir=base_dir.parent,
       dirs=[Path('dotfiles')],
+      prefix='.',
     )
 
   @classmethod
   def binfile(cls, base_dir: Path) -> 'FileGroup':
-    """default config for dotfiles"""
+    """default config for binfiles"""
     return cls._defaults(
       base_dir=base_dir,
       target_dir=base_dir.parent.joinpath(".local", "bin"),
       dirs=[Path('bin')],
+      prefix='',
     )
 
+class EmptyFileGroup(FileGroup):
+  @property
+  def vpaths(self) -> List[Path]:
+    return []
 
-@attr.s(slots=True, frozen=True, auto_attribs=True)
+
+@attr.s(auto_attribs=True)
 class Settings:
   """takes flags and creates a more high-level configuration object out of them"""
 
@@ -101,12 +132,15 @@ class Settings:
   conflicting_symlink_strategy: str = attr.ib(default='replace')
 
   @conflicting_file_strategy.validator
-  def _validate_cfs(self, _ignore, value):
+  def __validate_cfs(self, _ignore, value):
     _file_strategy_validator(value)
 
   @conflicting_symlink_strategy.validator
-  def _validate_css(self, _ignore, value):
+  def __validate_css(self, _ignore, value):
     _symlink_strategy_validator(value)
+
+  def evolve(self, **kw) -> 'Settings':
+    return attr.evolve(self, **kw)
 
   @classmethod
   def mk_default(cls, base_dir: Path) -> 'Settings':
@@ -116,6 +150,13 @@ class Settings:
       binfiles_file_group=FileGroup.binfile(base_dir),
     )
 
+  @property
+  def vpaths(self) -> List[Path]:
+    return list(chain(self.binfiles_file_group.vpaths, self.dotfiles_file_group.vpaths))
+
+  @property
+  def link_data(self) -> List[LinkData]:
+    return list(chain(self.binfiles_file_group.link_data, self.dotfiles_file_group.link_data))
 
 ## register necessary serde with cattr
 

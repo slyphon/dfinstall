@@ -81,7 +81,7 @@ def df_paths(cli_runner):
     for df in ['bashrc', 'vimrc', 'inputrc', 'bash_profile', '.df_ignore']
   ]
 
-  dotfile_extras = [dotfile_extras_dir.joinpath(df) for df in ['tux', 'gnome', '.dfe_ignore']]
+  dotfile_extras = [dotfile_extras_dir.joinpath(df) for df in ['tux', 'gnome', '.dfe_ignore', 'bash_profile']]
 
   bins = [bin_dir.joinpath(bin) for bin in ['ctags', 'pants', 'pip', '.b_ignore']]
 

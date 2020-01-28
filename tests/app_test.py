@@ -31,6 +31,9 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
     )
     # yapf: enable
 
+    if result.exit_code != 0:
+      raise result.exception from None
+
     assert result.exit_code == 0
     assert len(result.output) > 0
 

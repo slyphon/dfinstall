@@ -20,8 +20,6 @@ class LinkData:
   # the contents of the symlink
   link_data: Path
 
-  prefix: str = ''
-
   @classmethod
   def for_path(cls, vpath: Path, target_dir: Path, prefix: str = '') -> 'LinkData':
     link_path = target_dir.joinpath(prefix + vpath.name)
@@ -48,11 +46,6 @@ class LinkData:
       # otherwise, without a common root, we just use the abspath
       return cls(vpath=vpath, link_path=link_path, link_data=vpath)
 
-  @classmethod
-  def for_dotfile(cls, vpath: Path, target_dir: Path) -> 'LinkData':
-    return cls.for_path(vpath, target_dir, prefix='.')
-
-
 
 # %%
 def collect(
@@ -75,7 +68,9 @@ def collect(
 
   paths = collapse(chain(dirents, globbed), base_type=Path)
 
-  return sorted([x for x in paths if not any_excludes_match(x) and x.exists()])
+  cleaned = [x for x in paths if not any_excludes_match(x) and x.exists()]
+
+  return sorted(cleaned)
 
 
 _ROOT = Path('/')
@@ -102,6 +97,3 @@ def find_common_root(a: Path, b: Path) -> Optional[Path]:
       b = b.parent
     else:
       a, b = a.parent, b.parent
-
-
-# %%
