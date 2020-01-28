@@ -19,7 +19,7 @@ def test_find_common_root():
     find_common_root(Path("/a/b/c"), Path("a/b/c"))
 
 
-def test_BinLinkData_relative():
+def test_LinkData_relative():
   vpath = Path("/Users/foo/.settings/bin/bar")
   target_dir = Path("/Users/foo/.local/bin")
 
@@ -27,3 +27,12 @@ def test_BinLinkData_relative():
 
   assert bld.link_path == Path("/Users/foo/.local/bin/bar")
   assert bld.link_data == Path("../../.settings/bin/bar")
+
+def test_LinkData_absolute():
+  vpath = Path("/Users/foo/.settings/bin/bar")
+  target_dir = Path("/Volumes/blah/.local/bin")
+
+  bld = LinkData.for_path(vpath, target_dir)
+
+  assert bld.link_path == Path("/Volumes/blah/.local/bin/bar")
+  assert bld.link_data == Path("/Users/foo/.settings/bin/bar")

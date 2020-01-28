@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Union
 import sys
 import os
 import os.path as osp
@@ -7,43 +7,43 @@ from pathlib import Path
 import json
 import logging
 
+import arrow
+
 log = logging.getLogger(__name__)
 
+_DATE_FORMAT_STR = 'YYYYMMDDHHmmss'
 
-def handle_rename(p: Path):
+
+def timestamp() -> str:
+  return arrow.utcnow().format(_DATE_FORMAT_STR)
+
+
+def backup(p: Path) -> Optional[Path]:
   log.debug(f"handle_rename for p: {p}, p.exists: {p.exists()}")
 
   if p.exists():
     for n in range(0, 100):
-      newp = p.with_suffix(f".{n:03}")
+      newp = p.with_suffix(f"dfi_{timestamp()}_{n:03}")
       if newp.exists():
         continue
       else:
         p.rename(newp)
-        break
+        return newp
     else:
       raise RuntimeError(f"couln't find a suitable backup name for {p}")
   else:
     return None
 
 
-def is_link(p: Path):
+def is_link(p: Path) -> Optional[bool]:
   try:
     s = os.lstat(p)
     return S_ISLNK(s.st_mode)
-  except FileNotFoundError as e:
+  except FileNotFoundError:
     return None
 
 
-def anything_exists_at(p: Path):
-  try:
-    os.lstat(p)
-    return True
-  except FileNotFoundError:
-    return False
-
-
-def chase_links(link: Path):
+def chase_links(link: Path) -> Path:
   cur = link
   depth = 0
   while depth <= 50:
@@ -55,17 +55,15 @@ def chase_links(link: Path):
     raise RuntimeError(f"stack level too deep, couldn't find {link} after {depth} tries")
 
 
-def link_points_to(link: Path, target: Path):
-  # result = chase_links(link)
-
+def link_points_to(link: Path, target: Path) -> Optional[bool]:
   try:
     data = os.readlink(link)
     return osp.samefile(chase_links(link), target)
   except FileNotFoundError:
-    pass
+    return None
 
 
-def do_the_symlinking(top_dir, dotfiles: List[Path]):
+def do_the_symlinking(top_dir, dotfiles: List[Path]) -> None:
   for df in dotfiles:
     # the thing the link will point *to*
     target = Path(top_dir) / df
@@ -92,7 +90,7 @@ def do_the_symlinking(top_dir, dotfiles: List[Path]):
           return fn()  # recurse
 
       elif link_path.is_file() or link_path.is_dir():
-        handle_rename(link_path)  # link path needs to be moved out of the way
+        backup(link_path)  # link path needs to be moved out of the way
         return fn()  # and recurse
 
       else:  # what the what?

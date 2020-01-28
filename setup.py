@@ -8,7 +8,7 @@ setup(
   name='dfi',
   version='0.1.0',
   license='BSD-3-Clause',
-  description="dotfile symlink manager",
+  description="dotfile installer: symlink config files into place",
   author="Jonathan Simms",
   author_email="slyphon@gmail.com",
   packages=find_packages('src'),
@@ -18,6 +18,13 @@ setup(
   zip_safe=False,
   python_requires='>=3.7, <4',
   setup_requires=[
-    'pytest',
+    'pipenv',
   ],
+  install_requires=[
+    "click"
+  ],
+  entry_points='''
+    [console_scripts]
+    dfi=dfi.app:main
+  '''
 )

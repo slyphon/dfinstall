@@ -5,20 +5,23 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
-pipenv-pex = "*"
 yapf = "*"
 isort = "*"
 mypy = "*"
 wheel = "*"
 pytest-watch = "*"
 pytest-mock = "*"
+tox = "*"
+shiv = "*"
+jupyter = "*"
 
 [packages]
-click = "*"
+click = ">=6.7,<7.0"  # shiv depends on this restriction
 attr = "*"
 cattrs = "*"
 python-dotenv = "*"
 more-itertools = "*"
+arrow = "*"
 
 [requires]
 python_version = "3.7"

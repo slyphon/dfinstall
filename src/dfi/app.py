@@ -13,12 +13,18 @@ from dotenv import find_dotenv, load_dotenv
 from .click_ext import PATHSEP_STRING
 
 from .config import (
-  FileGroup, Settings, VALID_FILE_STRATEGIES, VALID_SYMLINK_STRATEGIES, TFileStrategies,
+  FileGroup,
+  Settings,
+  VALID_FILE_STRATEGIES,
+  VALID_SYMLINK_STRATEGIES,
+  TFileStrategies,
   TSymlinkStrategies
 )
 
+
 def run(settings: Settings) -> None:
   pass
+
 
 @click.command()
 @click.option(
@@ -32,7 +38,7 @@ def run(settings: Settings) -> None:
   '-F',
   '--file-conflict-strategy',
   'file_strategy',
-  type=click.Choice(VALID_FILE_STRATEGIES, case_sensitive=False),
+  type=click.Choice(VALID_FILE_STRATEGIES),
   help="a strategy to resolve conflicts when a dest exists and is a file",
   default='backup',
 )
@@ -40,7 +46,7 @@ def run(settings: Settings) -> None:
   '-S',
   '--symlink-conflict-strategy',
   'symlink_strategy',
-  type=click.Choice(VALID_SYMLINK_STRATEGIES, case_sensitive=False),
+  type=click.Choice(VALID_SYMLINK_STRATEGIES),
   help="a strategy to resolve conflicts when a dest exists and is a symlink",
   default='replace',
 )
@@ -93,9 +99,8 @@ def run(settings: Settings) -> None:
 @click.option(
   '--output-flag-settings',
   help="""dumps a configuration in json that matches the flags
-    given to the path provided (or stdout for -) and exits""" ,
+    given to the path provided (or stdout for -) and exits""",
   type=click.File(mode='w', encoding='utf8'),
-  hidden=True,
 )
 def main(
   base_path: Path,
