@@ -12,11 +12,11 @@ wheel = "*"
 pytest-watch = "*"
 pytest-mock = "*"
 tox = "*"
-shiv = "*"
 jupyter = "*"
+pex = "*"
 
 [packages]
-click = ">=6.7,<7.0"  # shiv depends on this restriction
+click = "*"  # shiv depends on this restriction
 attr = "*"
 cattrs = "*"
 python-dotenv = "*"

@@ -11,10 +11,9 @@ trap cleanup EXIT
 TOPLEVEL=$(git -C "$(cd "$(dirname "$0")" >/dev/null || exit 1; pwd)" rev-parse --show-toplevel) || die "TOPLEVEL fail"
 
 unset PIP_REQUIRE_VIRTUALENV
+export PEX_IGNORE_RCFILES=1
 
 set -x
-
-export PATH="$(pwd)/.venv/bin:/usr/bin:/usr/sbin:/bin:/sbin"
 
 mk_pex() {
   cd "$TOPLEVEL"
@@ -44,13 +43,14 @@ mk_pex() {
 
   args=(
     .
+    -v -v -v
     -r "${req_txt}"
     -m "${module_entry_point}"
     -o "${temp_utils_pex}"
-    --interpreter-constraint 'CPython>=3.7'
+    # --interpreter-constraint 'CPython>=3.7,<4'
   )
 
-  pex "${args[@]}"
+  python -m pex "${args[@]}"
 
   mv "${temp_utils_pex}" "${dest_path}"
 }
