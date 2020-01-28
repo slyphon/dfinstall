@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 import sys
 import os
 import os.path as osp
@@ -15,7 +15,7 @@ _DATE_FORMAT_STR = 'YYYYMMDDHHmmss'
 
 
 def timestamp() -> str:
-  return arrow.utcnow().format(_DATE_FORMAT_STR)
+  return cast(str, arrow.utcnow().format(_DATE_FORMAT_STR))
 
 
 def backup(p: Path) -> Optional[Path]:
@@ -79,13 +79,13 @@ def do_the_symlinking(top_dir, dotfiles: List[Path]) -> None:
         link_path.symlink_to(link_data)  # ok, we're clear, do it
 
       elif is_link(link_path):
-        debug(f"{link_path} is symlink")
+        log.debug(f"{link_path} is symlink")
 
         if link_points_to(link_path, target):
-          debug(f"{link_path} resolves to {target}")
+          log.debug(f"{link_path} resolves to {target}")
           return  # ok, we already did this, so skip it
         else:
-          debug(f"{link_path} points to {os.readlink(link_path)}, remove it")
+          log.debug(f"{link_path} points to {os.readlink(link_path)}, remove it")
           os.unlink(link_path)  # link points somewhere dumb, remove it and run again
           return fn()  # recurse
 

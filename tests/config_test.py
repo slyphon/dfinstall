@@ -5,7 +5,8 @@ from typing import Any, Type, TypeVar
 
 import cattr
 
-from dfi.config import FileGroup, Settings, LinkData
+from dfi.config import FileGroup, Settings  # type: ignore
+from dfi.dotfile import LinkData            # type: ignore
 
 from .conftest import FixturePaths
 
@@ -29,10 +30,8 @@ SETTINGS = Settings(
 
 T = TypeVar('T')
 
-
 def do_roundtrip(obj: T, cls: Type[T]):
   return cattr.structure(json.loads(json.dumps(cattr.unstructure(obj))), cls)
-
 
 def test_FileGroup_json_round_trip():
   assert FG == do_roundtrip(FG, FileGroup)
@@ -40,6 +39,7 @@ def test_FileGroup_json_round_trip():
 
 def test_Settings_round_trip():
   assert SETTINGS == do_roundtrip(SETTINGS, Settings)
+
 
 def test_Settings_vpaths(df_paths: FixturePaths):
   s = Settings.mk_default(df_paths.base_dir)
@@ -52,6 +52,7 @@ def test_Settings_vpaths(df_paths: FixturePaths):
   ]
   assert s.vpaths == vpaths
 
+
 def test_Settings_link_data(df_paths: FixturePaths):
   s = Settings.mk_default(df_paths.base_dir)
 
@@ -61,8 +62,7 @@ def test_Settings_link_data(df_paths: FixturePaths):
       vpath=df_paths.bin_dir.joinpath(b),
       link_path=df_paths.home_dir / '.local/bin' / b,
       link_data=Path("../..", df_paths.base_dir.name) / 'bin' / b,
-    )
-    for b in bins
+    ) for b in bins
   ]
 
   dotfiles = ['bash_profile', 'bashrc', 'inputrc', 'vimrc']
@@ -71,8 +71,7 @@ def test_Settings_link_data(df_paths: FixturePaths):
       vpath=df_paths.dotfiles_dir.joinpath(df),
       link_path=df_paths.home_dir / f".{df}",
       link_data=Path(df_paths.base_dir.name) / 'dotfiles' / df,
-    )
-    for df in dotfiles
+    ) for df in dotfiles
   ]
 
   assert s.link_data == [*ld_bins, *ld_df]
