@@ -1,5 +1,5 @@
 import os
-import os.path
+import os.path # type: ignore # noqa
 from pathlib import Path
 from pprint import pprint
 from typing import List, Optional, TextIO
@@ -21,10 +21,11 @@ from .config import (
   TSymlinkStrategies
 )
 
-
 def run(settings: Settings) -> None:
   pass
 
+
+# mypy: disallow-untyped-decorators=False
 
 @click.command()
 @click.option(
@@ -39,7 +40,7 @@ def run(settings: Settings) -> None:
   '--file-conflict-strategy',
   'file_strategy',
   type=click.Choice(VALID_FILE_STRATEGIES),
-  help="a strategy to resolve conflicts when a dest exists and is a file",
+  help="a strategy to resolve conflicts when a dest exists and is a file", # type: ignore # wtf?
   default='backup',
 )
 @click.option(

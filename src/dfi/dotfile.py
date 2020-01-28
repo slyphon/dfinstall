@@ -76,7 +76,7 @@ def collect(
 _ROOT = Path('/')
 
 
-def _assert_is_absolute(a: Path):
+def _assert_is_absolute(a: Path) -> None:
   if not a.is_absolute():
     raise ValueError(f"argument must be an absolute Path, got {a}")
 

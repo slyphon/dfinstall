@@ -5,8 +5,8 @@ from typing import Any, Type, TypeVar
 
 import cattr
 
-from dfi.config import FileGroup, Settings  # type: ignore
-from dfi.dotfile import LinkData            # type: ignore
+from dfi.config import FileGroup, Settings  # type: ignore # noqa
+from dfi.dotfile import LinkData            # type: ignore # noqa
 
 from .conftest import FixturePaths
 

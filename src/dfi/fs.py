@@ -62,8 +62,11 @@ def link_points_to(link: Path, target: Path) -> Optional[bool]:
   except FileNotFoundError:
     return None
 
+TPathOrString = Union[Path, str]
 
-def do_the_symlinking(top_dir, dotfiles: List[Path]) -> None:
+def do_the_symlinking(top_dir: TPathOrString, dotfiles: List[Path]) -> None:
+  top_dir = Path(top_dir)
+
   for df in dotfiles:
     # the thing the link will point *to*
     target = Path(top_dir) / df
@@ -74,7 +77,7 @@ def do_the_symlinking(top_dir, dotfiles: List[Path]) -> None:
     # the data the link will contain
     link_data = target.relative_to(link_path.parent.resolve())
 
-    def fn():
+    def fn() -> None:
       if not os.path.lexists(link_path):
         link_path.symlink_to(link_data)  # ok, we're clear, do it
 

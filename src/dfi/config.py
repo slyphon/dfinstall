@@ -20,7 +20,6 @@ VALID_SYMLINK_STRATEGIES: Final[List[TSymlinkStrategies]] = ['replace', 'warn', 
 
 T = TypeVar('T')
 
-
 def _literal_value_assertion(valid: List[T], obj: Any) -> T:
   if obj in valid:
     return cast(T, obj)
@@ -58,11 +57,8 @@ class FileGroup:
   # the prefix to use for the link path (i.e. '.')
   link_prefix: str = attr.ib(default='')
 
-  def evolve(self, **kw) -> 'FileGroup':
-    return attr.evolve(self, **kw)
-
   @globs.validator
-  def __glob_validator(self, _ignored, value):
+  def __glob_validator(self, _ignored: attr.Attribute['FileGroup'], value: Optional[List[str]]) -> None:
     if value is None:
       return
     for v in value:
@@ -132,15 +128,12 @@ class Settings:
   conflicting_symlink_strategy: str = attr.ib(default='replace')
 
   @conflicting_file_strategy.validator
-  def __validate_cfs(self, _ignore, value):
+  def __validate_cfs(self, _ignore: attr.Attribute[str], value: str) -> None:
     _file_strategy_validator(value)
 
   @conflicting_symlink_strategy.validator
-  def __validate_css(self, _ignore, value):
+  def __validate_css(self, _ignore: attr.Attribute[str], value: str) -> None:
     _symlink_strategy_validator(value)
-
-  def evolve(self, **kw) -> 'Settings':
-    return attr.evolve(self, **kw)
 
   @classmethod
   def mk_default(cls, base_dir: Path) -> 'Settings':
