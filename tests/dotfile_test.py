@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from dfi.dotfile import LinkData, find_common_root
+# mypy: ignore-missing-imports
+from dfi.dotfile import LinkData, find_common_root # type: ignore
 
 
 def test_find_common_root():

@@ -1,3 +1,4 @@
+from typing import List
 import json
 from pathlib import Path
 from pprint import pprint
@@ -100,4 +101,26 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
     ),
   )
 
-  s.link_data
+  vpaths: List[Path] = []
+  link_paths: List[Path] = []
+  link_datas: List[Path] = []
+
+  for ld in s.link_data:
+    v, lp, d = ld.vpath, ld.link_path, ld.link_data
+    vpaths.append(v.relative_to(df_paths.home_dir))
+    link_paths.append(lp.relative_to(df_paths.home_dir))
+    link_datas.append(d)
+
+  expect_vpaths = [
+    'settings/dotfile_linux/bash_profile',
+    'settings/dotfiles/bashrc',
+    'settings/dotfiles/inputrc',
+    'settings/dotfile_linux/tux',
+    'settings/dotfiles/vimrc'
+  ]
+
+  assert expect_vpaths == [str(v) for v in vpaths]
+
+  assert ['.bash_profile', '.bashrc', '.inputrc', '.tux', '.vimrc'] == [str(v) for v in link_paths]
+
+  assert expect_vpaths == [str(v) for v in link_datas]

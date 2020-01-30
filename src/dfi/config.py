@@ -1,15 +1,15 @@
-from pathlib import Path
 from functools import partial
-from typing import Callable, Iterable, List, Optional, Type, cast, TypeVar, Any
-from typing_extensions import Final
 from itertools import chain
+from pathlib import Path
+from typing import (Any, Callable, Dict, Iterable, List, Optional, Type,
+                    TypeVar, cast)
 
 import attr
 import cattr
-from typing_extensions import Literal
+from typing_extensions import Final, Literal
 
-from .backports import cached_property
 from . import dotfile
+from .backports import cached_property
 from .dotfile import LinkData
 
 TFileStrategies = Literal['backup', 'delete', 'warn', 'fail']
@@ -74,8 +74,22 @@ class FileGroup:
     return dotfile.collect(self.base_dir, self.dirs, self.globs, self.excludes)
 
   @property
-  def link_data(self) -> List[LinkData]:
+  def _link_data_raw(self) -> List[LinkData]:
     return [LinkData.for_path(vpath, self.target_dir, self.link_prefix) for vpath in self.vpaths]
+
+  @property
+  def link_data(self) -> List[LinkData]:
+    """LinkData for this FileGroup that contains no duplicate destinations
+
+    The first entry in _link_data_raw wins based on link_path name
+    """
+    d: Dict[str, LinkData] = {}
+    for ld in self._link_data_raw:
+      if ld.link_path.name not in d:
+        d[ld.link_path.name] = ld
+
+    return [v for k, v in sorted(d.items())]
+
 
   @classmethod
   def _defaults(cls, base_dir: Path, target_dir: Path, dirs: List[Path], prefix: str) -> 'FileGroup':
@@ -152,7 +166,6 @@ class Settings:
     return list(chain(self.binfiles_file_group.link_data, self.dotfiles_file_group.link_data))
 
 ## register necessary serde with cattr
-
 
 def _unstructure_path(posx: Path) -> str:
   return str(posx)
