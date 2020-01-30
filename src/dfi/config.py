@@ -161,6 +161,6 @@ def _unstructure_path(posx: Path) -> str:
 def _structure_path(pstr: str, typ: Type[Path]) -> Path:
   return Path(pstr)
 
-
+# mypy: no-disallow-untyped-calls
 cattr.register_structure_hook(Path, _structure_path)
 cattr.register_unstructure_hook(Path, _unstructure_path)

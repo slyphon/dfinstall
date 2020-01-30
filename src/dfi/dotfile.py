@@ -47,6 +47,7 @@ class LinkData:
       return cls(vpath=vpath, link_path=link_path, link_data=vpath)
 
 
+
 # %%
 def collect(
   base_dir: Path,

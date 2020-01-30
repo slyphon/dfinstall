@@ -1,4 +1,5 @@
-from setuptools import find_packages, setup
+# mypy: ignore-missing-imports
+from setuptools import find_packages, setup # type: ignore
 import io
 import re
 from glob import glob

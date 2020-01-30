@@ -5,6 +5,7 @@ from typing import Any, Type, TypeVar
 
 import cattr
 
+# mypy: ignore-missing-imports
 from dfi.config import FileGroup, Settings  # type: ignore # noqa
 from dfi.dotfile import LinkData            # type: ignore # noqa
 
@@ -79,7 +80,7 @@ def test_Settings_link_data(df_paths: FixturePaths):
   pprint(cattr.unstructure(s.link_data))
 
 
-def test_Settings_with_globs(df_paths: FixturePaths):
+def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
   s = Settings(
     base_dir=df_paths.base_dir,
     dotfiles_file_group=FileGroup(
@@ -100,4 +101,3 @@ def test_Settings_with_globs(df_paths: FixturePaths):
   )
 
   s.link_data
-  1 / 0
