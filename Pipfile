@@ -13,11 +13,12 @@ pytest-watch = "*"
 pytest-mock = "*"
 tox = "*"
 jupyter = "*"
-pex = "*"
+ipdb = "*"
+pytest-mypy = "*"
 
 [packages]
 click = "*"  # shiv depends on this restriction
-attr = "*"
+attrs = "*"
 cattrs = "*"
 python-dotenv = "*"
 more-itertools = "*"

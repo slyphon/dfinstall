@@ -58,7 +58,7 @@ class FileGroup:
   link_prefix: str = attr.ib(default='')
 
   @globs.validator
-  def __glob_validator(self, _ignored: attr.Attribute['FileGroup'], value: Optional[List[str]]) -> None:
+  def __glob_validator(self, _ignored: 'attr.Attribute[FileGroup]', value: Optional[List[str]]) -> None:
     if value is None:
       return
     for v in value:
@@ -128,11 +128,11 @@ class Settings:
   conflicting_symlink_strategy: str = attr.ib(default='replace')
 
   @conflicting_file_strategy.validator
-  def __validate_cfs(self, _ignore: attr.Attribute[str], value: str) -> None:
+  def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
     _file_strategy_validator(value)
 
   @conflicting_symlink_strategy.validator
-  def __validate_css(self, _ignore: attr.Attribute[str], value: str) -> None:
+  def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
     _symlink_strategy_validator(value)
 
   @classmethod
