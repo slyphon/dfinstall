@@ -16,6 +16,8 @@ jupyter = "*"
 ipdb = "*"
 pytest-mypy = "*"
 pytest-cov = "*"
+coverage = {extras = ["toml"],version = "*"}
+pytest-xdist = "*"
 
 [packages]
 click = "*"  # shiv depends on this restriction

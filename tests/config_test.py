@@ -1,11 +1,8 @@
-import os
 import json
+import os
 from pathlib import Path
 from pprint import pprint
-from typing import Any, List, Type, TypeVar, Tuple, Sequence
-
-# mypy: ignore-missing-imports
-from dfi.exceptions import FatalConflict # type: ignore
+from typing import Any, List, Sequence, Tuple, Type, TypeVar
 
 import attr
 import cattr
@@ -14,7 +11,10 @@ import pytest
 # mypy: ignore-missing-imports
 from dfi.config import FileGroup, Settings  # type: ignore # noqa
 from dfi.dotfile import LinkData  # type: ignore # noqa
+from dfi.exceptions import (BackupFailed, FatalConflict,  # type: ignore
+                            FilesystemConflictError, TooManySymbolicLinks)
 from dfi.fs import apply_settings  # type: ignore
+from dfi import fs # type: ignore
 
 from .conftest import FixturePaths
 
@@ -38,8 +38,10 @@ SETTINGS = Settings(
 
 T = TypeVar('T')
 
+
 def do_roundtrip(obj: T, cls: Type[T]):
   return cattr.structure(json.loads(json.dumps(cattr.unstructure(obj))), cls)
+
 
 def test_FileGroup_json_round_trip():
   assert FG == do_roundtrip(FG, FileGroup)
@@ -87,7 +89,6 @@ def test_Settings_link_data(df_paths: FixturePaths):
   pprint(cattr.unstructure(s.link_data))
 
 
-
 def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
   s = Settings(
     base_dir=df_paths.base_dir,
@@ -131,6 +132,7 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
 
   assert expect_vpaths == [str(v) for v in link_datas]
 
+
 @pytest.fixture()
 def settings(df_paths: FixturePaths):
   return Settings(
@@ -171,7 +173,6 @@ def test_Settings_install(df_paths: FixturePaths, settings: Settings):
     assert link_location.is_symlink()
 
 
-
 def test_file_conflict_backup(df_paths: FixturePaths, settings: Settings):
   s = settings
   bashrcpath = df_paths.home_dir.joinpath('.bashrc')
@@ -183,6 +184,7 @@ def test_file_conflict_backup(df_paths: FixturePaths, settings: Settings):
   assert len(backup) > 0
 
   assert backup[0].read_text() == contents
+
 
 def test_file_conflict_delete(df_paths: FixturePaths, settings: Settings):
   s = attr.evolve(settings, conflicting_file_strategy='delete')
@@ -211,6 +213,7 @@ def test_file_conflict_warn(df_paths: FixturePaths, settings: Settings, caplog: 
   assert msg.endswith("'warn' strategy selected, continuing.")
   assert bashrcpath.read_text(encoding='utf8') == contents
 
+
 def test_file_conflict_fail(df_paths: FixturePaths, settings: Settings):
   s = attr.evolve(settings, conflicting_file_strategy='fail')
   bashrcpath = df_paths.home_dir.joinpath('.bashrc')
@@ -221,3 +224,80 @@ def test_file_conflict_fail(df_paths: FixturePaths, settings: Settings):
     apply_settings(s)
 
   assert bashrcpath.read_text(encoding='utf8') == contents
+
+
+def test_symlink_conflict_same_link(df_paths: FixturePaths, settings: Settings):
+  s = attr.evolve(settings, conflicting_symlink_strategy='replace')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  link_data = "settings/dotfiles/bashrc"
+  bashrcpath.symlink_to(link_data)
+  apply_settings(s)
+
+  assert os.readlink(bashrcpath) == link_data
+
+
+def test_symlink_conflict_replace(df_paths: FixturePaths, settings: Settings):
+  s = attr.evolve(settings, conflicting_symlink_strategy='replace')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  link_data = "settings/dotfiles/WHAT"
+  bashrcpath.symlink_to(link_data)
+  apply_settings(s)
+  assert os.readlink(bashrcpath) == "settings/dotfiles/bashrc"
+
+
+def test_symlink_conflict_warn(df_paths: FixturePaths, settings: Settings, caplog):
+  s = attr.evolve(settings, conflicting_symlink_strategy='warn')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  link_data = "settings/dotfiles/WHAT"
+  bashrcpath.symlink_to(link_data)
+  apply_settings(s)
+  assert os.readlink(bashrcpath) == link_data
+
+  rtup: Sequence[Tuple[str, int, str]] = caplog.record_tuples
+  assert len(rtup) >= 1
+  file, line, msg = next((t for t in rtup if t[0] == "dfi.fs"))
+
+  assert msg.startswith("File location")
+  assert msg.endswith("'warn' strategy selected, continuing.")
+
+
+def test_symlink_conflict_fail(df_paths: FixturePaths, settings: Settings):
+  s = attr.evolve(settings, conflicting_symlink_strategy='fail')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  link_data = "settings/dotfiles/WHAT"
+  bashrcpath.symlink_to(link_data)
+
+  with pytest.raises(FatalConflict):
+    apply_settings(s)
+
+  assert os.readlink(bashrcpath) == link_data
+
+
+def test_filesystem_conflict_error_ie_wtf_is_that_node(df_paths: FixturePaths, settings: Settings):
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  os.mkfifo(bashrcpath)
+  with pytest.raises(FilesystemConflictError):
+    apply_settings(settings)
+
+
+def test_detect_symlink_loops(df_paths: FixturePaths, settings: Settings):
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  base_bashrc = df_paths.dotfiles_dir.joinpath('bashrc')
+  bashrcpath.symlink_to("evil_link")
+  df_paths.home_dir.joinpath('evil_link').symlink_to('.bashrc')
+
+  with pytest.raises(TooManySymbolicLinks):
+    apply_settings(settings)
+
+def test_backup_failed(df_paths: FixturePaths, settings: Settings, monkeypatch):
+  def timestamp():
+    return "itstime"
+
+  monkeypatch.setattr(fs, 'timestamp', timestamp)
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  for n in range(0, 100):
+    bashrcpath.parent.joinpath(f".bashrc.dfi_itstime_{n:03}").touch()
+  bashrcpath.touch()
+
+  with pytest.raises(BackupFailed):
+    apply_settings(settings)

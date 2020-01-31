@@ -1,0 +1,14 @@
+[run]
+branch = true
+source =
+  src/dfi/*
+
+[report]
+exclude_lines =
+  pragma: no cover
+  noqa
+  def __repr__
+  if __name__ == .__main__.:
+
+[html]
+directory = htmlcov

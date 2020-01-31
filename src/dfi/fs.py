@@ -30,12 +30,13 @@ def timestamp() -> str:
 
 
 def backup(p: Path) -> Optional[Path]:
-  log.debug(f"handle_rename for p: {p}, p.exists: {p.exists()}")
+  log.debug(f"handle rename for p: {p}, p.exists: {p.exists()}")
 
   if p.exists():
     for n in range(0, 100):
       newp = p.with_suffix(f".dfi_{timestamp()}_{n:03}")
       if newp.exists():
+        log.debug(f"backup path {newp!s} existed, retrying")
         continue
       else:
         p.rename(newp)
@@ -76,11 +77,13 @@ def link_points_to(link: Path, target: Path) -> Optional[bool]:
 
 def backup_file_strategy(p: Path) -> None:
   """when a link_path exists and is a file, this method moves it to a unique location"""
+  log.debug(f"backup_file_strategy: {p}")
   backup(p)
 
 
 def delete_strategy(p: Path) -> None:
   """when a link_path exists and is a file, this method removes it"""
+  log.debug(f"delete_strategy: {p}")
   p.unlink()
 
 
@@ -119,10 +122,13 @@ def _apply_link_data(
     link_path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
 
   def fn() -> None:
-    if not os.path.exists(link_path):
-      link_path.symlink_to(link_data)  #ok, we're clear, do it
+    # os.path.exists reports false for a broken symlink
+    if not os.path.exists(link_path) or is_link(link_path):
 
-    elif is_link(link_path):
+      if not is_link(link_path):
+        link_path.symlink_to(link_data)  # ok, we're clear, do it
+        return
+
       log.debug(f"{link_path} is symlink")
 
       if link_points_to(link_path, target):
@@ -146,7 +152,9 @@ def _apply_link_data(
     return None
 
 
-def apply_link_data(link_datas: List[LinkData], create_missing: bool, fs: StrategyFn, ls: StrategyFn) -> None:
+def apply_link_data(
+  link_datas: List[LinkData], create_missing: bool, fs: StrategyFn, ls: StrategyFn
+) -> None:
   for ld in link_datas:
     _apply_link_data(ld, create_missing, fs, ls)
 
