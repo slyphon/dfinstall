@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Type,
                     TypeVar, cast)
 
+from more_itertools import collapse
+
 import attr
 import cattr
 from typing_extensions import Final, Literal
@@ -163,7 +165,11 @@ class Settings:
 
   @property
   def link_data(self) -> List[LinkData]:
-    return list(chain(self.binfiles_file_group.link_data, self.dotfiles_file_group.link_data))
+    return list(collapse((fg.link_data for fg in self.file_groups), base_type=LinkData))
+
+  @property
+  def file_groups(self) -> List[FileGroup]:
+    return [self.binfiles_file_group, self.dotfiles_file_group]
 
 ## register necessary serde with cattr
 

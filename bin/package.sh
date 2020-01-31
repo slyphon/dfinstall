@@ -5,16 +5,31 @@ set -euo pipefail
 die() { echo "fatal: $*" >&2; exit 1; }
 
 TEMP="$(mktemp -d 2>/dev/null || mktemp -d -t tempdir)" || die "failed to make tmpdir"
-cleanup() { [[ -n "${TEMP:-}" ]] && rm -rf "${TEMP}"; }
+
+cleanup() {
+  [[ -n "${TEMP:-}" ]] && rm -rf "${TEMP}";
+}
+
 trap cleanup EXIT
+
+PYTHON="${PYTHON:-python}"
+
+realpath() { "${PYTHON}" -c "from __future__ import print_function; import os,sys; print(os.path.realpath(sys.argv[1]))" "$1"; }
 
 TOPLEVEL=$(git -C "$(cd "$(dirname "$0")" >/dev/null || exit 1; pwd)" rev-parse --show-toplevel) || die "TOPLEVEL fail"
 
 unset PIP_REQUIRE_VIRTUALENV
 export PEX_IGNORE_RCFILES=1
 
-
 set -x
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if [[ "${DOCKER_SETUP}" ]]; then
+  curl --fail -q https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+    && /usr/bin/python3 /tmp/get-pip.py \
+    && pip install --no-cache-dir pipenv pex
+fi
 
 scrub_shims() {
   local path i path_array new_path
@@ -42,10 +57,14 @@ scrub_shims() {
 mk_pex() {
   cd "$TOPLEVEL"
 
+  git archive --format tar --prefix dfi/ -o /dev/stdout HEAD .|tar -C "${TEMP}" -xf-
+
+  cd "${TEMP}/dfi"
+
   local module_entry_point dest_path
 
   module_entry_point="${DFI_PEX_ENTRY_POINT:-dfi.app:main}"
-  dest_path="${DFI_PEX_DEST_PATH:-dest/dfi.pex}"
+  dest_path="${DFI_PEX_DEST_PATH:-dist/dfi.pex}"
   interactive="${DFI_PEX_INTERACTIVE:-f}"
 
   if [[ -z "$module_entry_point" || -z "$dest_path" ]]; then
@@ -64,6 +83,7 @@ mk_pex() {
   temp_utils_pex="$TEMP/out.pex"
   req_txt="$TEMP/requirements.txt"
 
+  pipenv --python "$PYTHON" install --ignore-pipfile
   pipenv lock -r > "${req_txt}"
 
   args=(
@@ -82,10 +102,10 @@ mk_pex() {
 
   eval "$(scrub_shims)"
 
-  export PEX_PYTHON=$(which python)
-  python -m pex "${args[@]}"
+  export PEX_PYTHON=$(realpath $(which "${PYTHON}"))
+  $PEX_PYTHON -m pex "${args[@]}"
 
-  mv "${temp_utils_pex}" "${dest_path}"
+  mv "${temp_utils_pex}" "${TOPLEVEL}/${dest_path}"
 }
 
 mk_pex "$@"

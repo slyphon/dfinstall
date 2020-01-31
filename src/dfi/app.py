@@ -1,5 +1,5 @@
 import os
-import os.path # type: ignore # noqa
+import os.path  # type: ignore # noqa
 from pathlib import Path
 from pprint import pprint
 from typing import List, Optional, TextIO
@@ -21,11 +21,10 @@ from .config import (
   TSymlinkStrategies
 )
 
-def run(settings: Settings) -> None:
-  pass
-
+from . import fs
 
 # mypy: disallow-untyped-decorators=False
+
 
 @click.command()
 @click.option(
@@ -211,6 +210,10 @@ def main(
     return
 
   run(settings)
+
+
+def run(settings: Settings) -> None:
+  fs.apply_settings(settings)
 
 
 if __name__ == '__main__':

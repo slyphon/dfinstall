@@ -1,0 +1,16 @@
+.git
+.eggs
+.env
+.envrc
+.gitignore
+.mypy_cache
+.pytest_cache
+.tox
+.venv
+.vscode
+build
+dist
+notebook
+stubs
+tmp
+Pipfile.lock
