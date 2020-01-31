@@ -1,8 +1,7 @@
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Type,
-                    TypeVar, cast)
+from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast)
 
 from more_itertools import collapse
 
@@ -14,27 +13,29 @@ from . import dotfile
 from .backports import cached_property
 from .dotfile import LinkData
 
-TFileStrategies = Literal['backup', 'delete', 'warn', 'fail']
-TSymlinkStrategies = Literal['replace', 'warn', 'fail']
+TFileStrategy = Literal['backup', 'delete', 'warn', 'fail']
+TSymlinkStrategy = Literal['replace', 'warn', 'fail']
 
-VALID_FILE_STRATEGIES: Final[List[TFileStrategies]] = ['backup', 'delete', 'warn', 'fail']
-VALID_SYMLINK_STRATEGIES: Final[List[TSymlinkStrategies]] = ['replace', 'warn', 'fail']
+VALID_FILE_STRATEGIES: Final[List[TFileStrategy]] = ['backup', 'delete', 'warn', 'fail']
+VALID_SYMLINK_STRATEGIES: Final[List[TSymlinkStrategy]] = ['replace', 'warn', 'fail']
 
 T = TypeVar('T')
+
 
 def _literal_value_assertion(valid: List[T], obj: Any) -> T:
   if obj in valid:
     return cast(T, obj)
   else:
-    raise ValueError(f"{obj} is not a valid value: {valid!r}")
+    raise ValueError(f"{obj!r} is not a valid value: {valid!r}")
 
 
-_file_strategy_validator: Callable[[Any], T] = \
-  partial(_literal_value_assertion, VALID_FILE_STRATEGIES)
+def file_strategy_validator(any: Any) -> TFileStrategy:
+  return _literal_value_assertion(VALID_FILE_STRATEGIES, any)
 
 
-_symlink_strategy_validator: Callable[[Any], T] = \
-  partial(_literal_value_assertion, VALID_SYMLINK_STRATEGIES)
+def symlink_strategy_validator(any: Any) -> TSymlinkStrategy:
+  return _literal_value_assertion(VALID_SYMLINK_STRATEGIES, any)
+
 
 DEFAULT_EXCLUDES: Final[List[str]] = ['.*']
 
@@ -60,13 +61,14 @@ class FileGroup:
   link_prefix: str = attr.ib(default='')
 
   @globs.validator
-  def __glob_validator(self, _ignored: 'attr.Attribute[FileGroup]', value: Optional[List[str]]) -> None:
+  def __glob_validator(
+    self, _ignored: 'attr.Attribute[FileGroup]', value: Optional[List[str]]
+  ) -> None:
     if value is None:
       return
     for v in value:
       if not isinstance(v, str):
         raise TypeError(f"globs must be strings, not {type(v)}, value: {v!r}")
-
 
   @property
   def vpaths(self) -> List[Path]:
@@ -92,9 +94,10 @@ class FileGroup:
 
     return [v for k, v in sorted(d.items())]
 
-
   @classmethod
-  def _defaults(cls, base_dir: Path, target_dir: Path, dirs: List[Path], prefix: str) -> 'FileGroup':
+  def _defaults(
+    cls, base_dir: Path, target_dir: Path, dirs: List[Path], prefix: str
+  ) -> 'FileGroup':
     return cls(
       base_dir=base_dir,
       target_dir=target_dir,
@@ -124,6 +127,7 @@ class FileGroup:
       prefix='',
     )
 
+
 class EmptyFileGroup(FileGroup):
   @property
   def vpaths(self) -> List[Path]:
@@ -146,11 +150,11 @@ class Settings:
 
   @conflicting_file_strategy.validator
   def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    _file_strategy_validator(value)
+    file_strategy_validator(value)
 
   @conflicting_symlink_strategy.validator
   def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    _symlink_strategy_validator(value)
+    symlink_strategy_validator(value)
 
   @classmethod
   def mk_default(cls, base_dir: Path) -> 'Settings':
@@ -172,7 +176,9 @@ class Settings:
   def file_groups(self) -> List[FileGroup]:
     return [self.binfiles_file_group, self.dotfiles_file_group]
 
+
 ## register necessary serde with cattr
+
 
 def _unstructure_path(posx: Path) -> str:
   return str(posx)
@@ -180,6 +186,7 @@ def _unstructure_path(posx: Path) -> str:
 
 def _structure_path(pstr: str, typ: Type[Path]) -> Path:
   return Path(pstr)
+
 
 # mypy: no-disallow-untyped-calls
 cattr.register_structure_hook(Path, _structure_path)

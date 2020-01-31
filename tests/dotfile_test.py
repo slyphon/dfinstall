@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 # mypy: ignore-missing-imports
-from dfi.dotfile import LinkData, find_common_root # type: ignore
+from dfi.dotfile import LinkData, find_common_root  # type: ignore
 
 
 def test_find_common_root():
@@ -29,6 +29,7 @@ def test_LinkData_relative():
   assert bld.link_path == Path("/Users/foo/.local/bin/bar")
   assert bld.link_data == Path("../../.settings/bin/bar")
 
+
 def test_LinkData_absolute():
   vpath = Path("/Users/foo/.settings/bin/bar")
   target_dir = Path("/Volumes/blah/.local/bin")
@@ -37,6 +38,7 @@ def test_LinkData_absolute():
 
   assert bld.link_path == Path("/Volumes/blah/.local/bin/bar")
   assert bld.link_data == Path("/Users/foo/.settings/bin/bar")
+
 
 def test_LinkData_with_prefix():
   vpath = Path("/Users/foo/.settings/dotfiles/bar")

@@ -17,8 +17,8 @@ from .config import (
   Settings,
   VALID_FILE_STRATEGIES,
   VALID_SYMLINK_STRATEGIES,
-  TFileStrategies,
-  TSymlinkStrategies
+  TFileStrategy,
+  TSymlinkStrategy
 )
 
 from . import fs
@@ -104,8 +104,8 @@ from . import fs
 )
 def main(
   base_path: Path,
-  file_strategy: TFileStrategies,
-  symlink_strategy: TSymlinkStrategies,
+  file_strategy: TFileStrategy,
+  symlink_strategy: TSymlinkStrategy,
   dotfile_dirs: List[Path],
   dotfiles: List[str],
   dotfile_excludes: List[str],

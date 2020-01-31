@@ -15,6 +15,7 @@ tox = "*"
 jupyter = "*"
 ipdb = "*"
 pytest-mypy = "*"
+pytest-cov = "*"
 
 [packages]
 click = "*"  # shiv depends on this restriction

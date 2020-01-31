@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 bin/pex*
 requirements.txt
+stubs/_pytest/

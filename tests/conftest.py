@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
 from pprint import pprint
-from typing import ContextManager, Iterator, List, TypeVar, Union
+from typing import ContextManager, Iterator, List, TypeVar, Union, cast
 
 import attr
 import cattr
@@ -88,7 +88,7 @@ def df_paths(cli_runner):
   bin_extras = [binfile_extras_dir.joinpath(b) for b in ['launched', 'pbcopy', '.be_ignore']]
 
   for f in chain(dotfiles, dotfile_extras, bins, bin_extras):
-    f.touch()
+    cast(Path, f).write_text(f"file: {f.name!s}", encoding='utf8')
 
   yield FixturePaths(
     tmp=tmp,

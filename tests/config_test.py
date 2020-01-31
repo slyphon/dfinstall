@@ -1,17 +1,20 @@
-from typing import List
+import os
 import json
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Type, TypeVar
+from typing import Any, List, Type, TypeVar, Tuple, Sequence
 
+# mypy: ignore-missing-imports
+from dfi.exceptions import FatalConflict # type: ignore
+
+import attr
 import cattr
-
 import pytest
 
 # mypy: ignore-missing-imports
 from dfi.config import FileGroup, Settings  # type: ignore # noqa
-from dfi.dotfile import LinkData            # type: ignore # noqa
-from dfi.fs import apply_settings           # type: ignore
+from dfi.dotfile import LinkData  # type: ignore # noqa
+from dfi.fs import apply_settings  # type: ignore
 
 from .conftest import FixturePaths
 
@@ -128,9 +131,9 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
 
   assert expect_vpaths == [str(v) for v in link_datas]
 
-
-def test_Settings_install(df_paths: FixturePaths):
-  s = Settings(
+@pytest.fixture()
+def settings(df_paths: FixturePaths):
+  return Settings(
     base_dir=df_paths.base_dir,
     dotfiles_file_group=FileGroup(
       base_dir=df_paths.base_dir,
@@ -148,6 +151,10 @@ def test_Settings_install(df_paths: FixturePaths):
       excludes=['.*'],
     ),
   )
+
+
+def test_Settings_install(df_paths: FixturePaths, settings: Settings):
+  s = settings
   apply_settings(s)
   print(df_paths.home_dir)
 
@@ -163,3 +170,54 @@ def test_Settings_install(df_paths: FixturePaths):
     assert link_location.exists()
     assert link_location.is_symlink()
 
+
+
+def test_file_conflict_backup(df_paths: FixturePaths, settings: Settings):
+  s = settings
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  contents = 'export YOUR_MOM=1'
+  bashrcpath.write_text(contents, encoding='utf8')
+  apply_settings(s)
+
+  backup: List[Path] = list(df_paths.home_dir.glob('.bashrc.dfi_*'))
+  assert len(backup) > 0
+
+  assert backup[0].read_text() == contents
+
+def test_file_conflict_delete(df_paths: FixturePaths, settings: Settings):
+  s = attr.evolve(settings, conflicting_file_strategy='delete')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  contents = 'export THIS_IS_ONE=1'
+  bashrcpath.write_text(contents, encoding='utf8')
+  apply_settings(s)
+
+  backup: List[Path] = list(df_paths.home_dir.glob('.bashrc.dfi_*'))
+  assert len(backup) == 0
+  assert bashrcpath.read_text() == "file: bashrc"
+
+
+def test_file_conflict_warn(df_paths: FixturePaths, settings: Settings, caplog: Any):
+  s = attr.evolve(settings, conflicting_file_strategy='warn')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  contents = 'export THIS_IS_ONE=1'
+  bashrcpath.write_text(contents, encoding='utf8')
+  apply_settings(s)
+
+  rtup: Sequence[Tuple[str, int, str]] = caplog.record_tuples
+  assert len(rtup) >= 1
+  file, line, msg = next((t for t in rtup if t[0] == "dfi.fs"))
+  assert file == "dfi.fs"
+  assert msg.startswith("File location")
+  assert msg.endswith("'warn' strategy selected, continuing.")
+  assert bashrcpath.read_text(encoding='utf8') == contents
+
+def test_file_conflict_fail(df_paths: FixturePaths, settings: Settings):
+  s = attr.evolve(settings, conflicting_file_strategy='fail')
+  bashrcpath = df_paths.home_dir.joinpath('.bashrc')
+  contents = 'export THIS_IS_ONE=1'
+  bashrcpath.write_text(contents, encoding='utf8')
+
+  with pytest.raises(FatalConflict):
+    apply_settings(s)
+
+  assert bashrcpath.read_text(encoding='utf8') == contents
