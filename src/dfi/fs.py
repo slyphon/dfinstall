@@ -65,8 +65,11 @@ def link_points_to(link: Path, target: Path) -> Optional[bool]:
     return None
 
 
-def _apply_link_data(ld: LinkData) -> None:
+def _apply_link_data(ld: LinkData, create_missing: bool) -> None:
   target, link_data, link_path = ld.vpath, ld.link_data, ld.link_path
+
+  if not link_path.parent.exists():
+    link_path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
 
   def fn() -> None:
     if not os.path.exists(link_path):
@@ -93,9 +96,9 @@ def _apply_link_data(ld: LinkData) -> None:
   fn()
 
 
-def apply_link_data(link_datas: List[LinkData]) -> None:
+def apply_link_data(link_datas: List[LinkData], create_missing: bool) -> None:
   for ld in link_datas:
-    _apply_link_data(ld)
+    _apply_link_data(ld, create_missing)
 
 def apply_settings(settings: Settings) -> None:
-  apply_link_data(settings.link_data)
+  apply_link_data(settings.link_data, settings.create_missing_target_dirs)

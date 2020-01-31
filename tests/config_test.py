@@ -6,9 +6,12 @@ from typing import Any, Type, TypeVar
 
 import cattr
 
+import pytest
+
 # mypy: ignore-missing-imports
 from dfi.config import FileGroup, Settings  # type: ignore # noqa
 from dfi.dotfile import LinkData            # type: ignore # noqa
+from dfi.fs import apply_settings           # type: ignore
 
 from .conftest import FixturePaths
 
@@ -81,6 +84,7 @@ def test_Settings_link_data(df_paths: FixturePaths):
   pprint(cattr.unstructure(s.link_data))
 
 
+
 def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
   s = Settings(
     base_dir=df_paths.base_dir,
@@ -100,7 +104,6 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
       excludes=None,
     ),
   )
-
   vpaths: List[Path] = []
   link_paths: List[Path] = []
   link_datas: List[Path] = []
@@ -124,3 +127,39 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
   assert ['.bash_profile', '.bashrc', '.inputrc', '.tux', '.vimrc'] == [str(v) for v in link_paths]
 
   assert expect_vpaths == [str(v) for v in link_datas]
+
+
+def test_Settings_install(df_paths: FixturePaths):
+  s = Settings(
+    base_dir=df_paths.base_dir,
+    dotfiles_file_group=FileGroup(
+      base_dir=df_paths.base_dir,
+      target_dir=df_paths.home_dir,
+      dirs=[df_paths.dotfiles_dir],
+      globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
+      excludes=['.*', 'gnome'],
+      link_prefix='.',
+    ),
+    binfiles_file_group=FileGroup(
+      base_dir=df_paths.base_dir,
+      target_dir=df_paths.home_dir.joinpath('.local', 'bin'),
+      dirs=[Path('bin')],
+      globs=None,
+      excludes=['.*'],
+    ),
+  )
+  apply_settings(s)
+  print(df_paths.home_dir)
+
+  print(df_paths.home_dir.glob("*"))
+
+  for df in ['.bash_profile', '.bashrc', '.inputrc', '.tux', '.vimrc']:
+    link_location = df_paths.home_dir.joinpath(df)
+    assert link_location.exists()
+    assert link_location.is_symlink()
+
+  for bin in ['ctags', 'pants', 'pip']:
+    link_location = df_paths.home_dir.joinpath('.local', 'bin', bin)
+    assert link_location.exists()
+    assert link_location.is_symlink()
+

@@ -142,6 +142,7 @@ class Settings:
 
   conflicting_file_strategy: str = attr.ib(default='backup')
   conflicting_symlink_strategy: str = attr.ib(default='replace')
+  create_missing_target_dirs: bool = attr.ib(default=True)
 
   @conflicting_file_strategy.validator
   def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
