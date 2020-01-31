@@ -9,7 +9,7 @@ import logging
 
 import arrow
 from .dotfile import LinkData
-from .config import Settings, TFileStrategy, TSymlinkStrategy, file_strategy_validator, symlink_strategy_validator
+from .config import Settings, TFileStrategy, TSymlinkStrategy, ensure_is_file_strategy, ensure_is_symlink_strategy
 from .exceptions import (BackupFailed, TooManySymbolicLinks, FatalConflict, FilesystemConflictError)
 
 log = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ StrategyFn = Callable[[Path], None]
 
 _FILE_STRATEGY_MAP: Dict[TFileStrategy, StrategyFn] = {
   'backup': backup_file_strategy,
-  'delete': delete_strategy,
+  'replace': delete_strategy,
   'warn': warn_strategy,
   'fail': fail_strategy,
 }
@@ -165,6 +165,6 @@ def apply_settings(settings: Settings) -> None:
     settings.create_missing_target_dirs,
     # revalidating here is silly, but it appeases mypy, because declaring
     # these as literal types on the Settings object messes up serialization
-    _FILE_STRATEGY_MAP[file_strategy_validator(settings.conflicting_file_strategy)],
-    _SYMLINK_STRATEGY_MAP[symlink_strategy_validator(settings.conflicting_symlink_strategy)]
+    _FILE_STRATEGY_MAP[ensure_is_file_strategy(settings.conflicting_file_strategy)],
+    _SYMLINK_STRATEGY_MAP[ensure_is_symlink_strategy(settings.conflicting_symlink_strategy)]
   )

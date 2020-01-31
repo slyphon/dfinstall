@@ -6,7 +6,7 @@
 # 'backup': move the file to a unique dated backup
 # location and create the symlink
 #
-# 'delete': just delete the file and create the symlink
+# 'replace': just delete the file and create the symlink
 #
 # 'warn': then print a warning that the conflict exists and
 # continue.

@@ -171,7 +171,7 @@ def main(
 
     * 'backup': move the file to a unique dated backup location and create the symlink
 
-    * 'delete': just delete the file and create the symlink
+    * 'replace': just delete the file and create the symlink
 
     * 'warn': print a warning that the conflict exists and continue.
 
@@ -190,21 +190,24 @@ def main(
     base_dir=base_path,
     conflicting_file_strategy=file_strategy,
     conflicting_symlink_strategy=symlink_strategy,
-    dotfiles_file_group=FileGroup(
-      base_dir=base_path,
-      dirs=dotfile_dirs,
-      globs=dotfiles,
-      excludes=dotfile_excludes,
-      target_dir=dotfile_target_dir
-    ),
-    binfiles_file_group=FileGroup(
-      base_dir=base_path,
-      dirs=binfile_dirs,
-      globs=binfiles,
-      excludes=binfile_excludes,
-      target_dir=binfile_target_dir
-    )
+    file_groups=[
+      FileGroup(
+        base_dir=base_path,
+        dirs=dotfile_dirs,
+        globs=dotfiles,
+        excludes=dotfile_excludes,
+        target_dir=dotfile_target_dir
+      ),
+      FileGroup(
+        base_dir=base_path,
+        dirs=binfile_dirs,
+        globs=binfiles,
+        excludes=binfile_excludes,
+        target_dir=binfile_target_dir
+      ),
+    ]
   )
+
   if output_flag_settings is not None:
     output_flag_settings.write(json.dumps(cattr.unstructure(settings)))
     return

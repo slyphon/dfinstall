@@ -1,7 +1,7 @@
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast)
+from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast, Union)
 
 from more_itertools import collapse
 
@@ -13,10 +13,10 @@ from . import dotfile
 from .backports import cached_property
 from .dotfile import LinkData
 
-TFileStrategy = Literal['backup', 'delete', 'warn', 'fail']
 TSymlinkStrategy = Literal['replace', 'warn', 'fail']
+TFileStrategy = Union[Literal['backup'], TSymlinkStrategy]
 
-VALID_FILE_STRATEGIES: Final[List[TFileStrategy]] = ['backup', 'delete', 'warn', 'fail']
+VALID_FILE_STRATEGIES: Final[List[TFileStrategy]] = ['backup', 'replace', 'warn', 'fail']
 VALID_SYMLINK_STRATEGIES: Final[List[TSymlinkStrategy]] = ['replace', 'warn', 'fail']
 
 T = TypeVar('T')
@@ -29,11 +29,11 @@ def _literal_value_assertion(valid: List[T], obj: Any) -> T:
     raise ValueError(f"{obj!r} is not a valid value: {valid!r}")
 
 
-def file_strategy_validator(any: Any) -> TFileStrategy:
+def ensure_is_file_strategy(any: Any) -> TFileStrategy:
   return _literal_value_assertion(VALID_FILE_STRATEGIES, any)
 
 
-def symlink_strategy_validator(any: Any) -> TSymlinkStrategy:
+def ensure_is_symlink_strategy(any: Any) -> TSymlinkStrategy:
   return _literal_value_assertion(VALID_SYMLINK_STRATEGIES, any)
 
 
@@ -141,8 +141,7 @@ class Settings:
   base_dir: Path
   """the directory containing all of the files in this collection"""
 
-  dotfiles_file_group: FileGroup
-  binfiles_file_group: FileGroup
+  file_groups: List[FileGroup]
 
   conflicting_file_strategy: str = attr.ib(default='backup')
   conflicting_symlink_strategy: str = attr.ib(default='replace')
@@ -150,31 +149,29 @@ class Settings:
 
   @conflicting_file_strategy.validator
   def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    file_strategy_validator(value)
+    ensure_is_file_strategy(value)
 
   @conflicting_symlink_strategy.validator
   def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    symlink_strategy_validator(value)
+    ensure_is_symlink_strategy(value)
 
   @classmethod
   def mk_default(cls, base_dir: Path) -> 'Settings':
     return cls(
       base_dir=base_dir,
-      dotfiles_file_group=FileGroup.dotfile(base_dir),
-      binfiles_file_group=FileGroup.binfile(base_dir),
+      file_groups=[
+        FileGroup.dotfile(base_dir),
+        FileGroup.binfile(base_dir)
+      ]
     )
 
   @property
   def vpaths(self) -> List[Path]:
-    return list(chain(self.binfiles_file_group.vpaths, self.dotfiles_file_group.vpaths))
+    return list(collapse((fg.vpaths for fg in self.file_groups), base_type=FileGroup))
 
   @property
   def link_data(self) -> List[LinkData]:
     return list(collapse((fg.link_data for fg in self.file_groups), base_type=LinkData))
-
-  @property
-  def file_groups(self) -> List[FileGroup]:
-    return [self.binfiles_file_group, self.dotfiles_file_group]
 
 
 ## register necessary serde with cattr

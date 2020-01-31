@@ -32,8 +32,7 @@ SETTINGS = Settings(
   conflicting_file_strategy='backup',
   conflicting_symlink_strategy='replace',
   base_dir=BASE_DIR,
-  dotfiles_file_group=FG,
-  binfiles_file_group=FG,
+  file_groups=[FG]
 )
 
 T = TypeVar('T')
@@ -57,8 +56,8 @@ def test_Settings_vpaths(df_paths: FixturePaths):
   bins = ['ctags', 'pants', 'pip']
   dotfiles = ['bash_profile', 'bashrc', 'inputrc', 'vimrc']
   vpaths = [
+    *[df_paths.dotfiles_dir.joinpath(d) for d in dotfiles],
     *[df_paths.bin_dir.joinpath(b) for b in bins],
-    *[df_paths.dotfiles_dir.joinpath(d) for d in dotfiles]
   ]
   assert s.vpaths == vpaths
 
@@ -84,7 +83,7 @@ def test_Settings_link_data(df_paths: FixturePaths):
     ) for df in dotfiles
   ]
 
-  assert s.link_data == [*ld_bins, *ld_df]
+  assert s.link_data == [*ld_df, *ld_bins]
 
   pprint(cattr.unstructure(s.link_data))
 
@@ -92,21 +91,23 @@ def test_Settings_link_data(df_paths: FixturePaths):
 def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
   s = Settings(
     base_dir=df_paths.base_dir,
-    dotfiles_file_group=FileGroup(
-      base_dir=df_paths.base_dir,
-      target_dir=df_paths.home_dir,
-      dirs=[df_paths.dotfiles_dir],
-      globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
-      excludes=['.*', 'gnome'],
-      link_prefix='.',
-    ),
-    binfiles_file_group=FileGroup(
-      base_dir=df_paths.base_dir,
-      target_dir=df_paths.home_dir.joinpath('.local', 'bin'),
-      dirs=[],
-      globs=None,
-      excludes=None,
-    ),
+    file_groups=[
+      FileGroup(
+        base_dir=df_paths.base_dir,
+        target_dir=df_paths.home_dir,
+        dirs=[df_paths.dotfiles_dir],
+        globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
+        excludes=['.*', 'gnome'],
+        link_prefix='.',
+      ),
+      FileGroup(
+        base_dir=df_paths.base_dir,
+        target_dir=df_paths.home_dir.joinpath('.local', 'bin'),
+        dirs=[],
+        globs=None,
+        excludes=None,
+      ),
+    ],
   )
   vpaths: List[Path] = []
   link_paths: List[Path] = []
@@ -137,21 +138,23 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
 def settings(df_paths: FixturePaths):
   return Settings(
     base_dir=df_paths.base_dir,
-    dotfiles_file_group=FileGroup(
-      base_dir=df_paths.base_dir,
-      target_dir=df_paths.home_dir,
-      dirs=[df_paths.dotfiles_dir],
-      globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
-      excludes=['.*', 'gnome'],
-      link_prefix='.',
-    ),
-    binfiles_file_group=FileGroup(
-      base_dir=df_paths.base_dir,
-      target_dir=df_paths.home_dir.joinpath('.local', 'bin'),
-      dirs=[Path('bin')],
-      globs=None,
-      excludes=['.*'],
-    ),
+    file_groups=[
+      FileGroup(
+        base_dir=df_paths.base_dir,
+        target_dir=df_paths.home_dir,
+        dirs=[df_paths.dotfiles_dir],
+        globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
+        excludes=['.*', 'gnome'],
+        link_prefix='.',
+      ),
+      FileGroup(
+        base_dir=df_paths.base_dir,
+        target_dir=df_paths.home_dir.joinpath('.local', 'bin'),
+        dirs=[Path('bin')],
+        globs=None,
+        excludes=['.*'],
+      ),
+    ],
   )
 
 
@@ -187,7 +190,7 @@ def test_file_conflict_backup(df_paths: FixturePaths, settings: Settings):
 
 
 def test_file_conflict_delete(df_paths: FixturePaths, settings: Settings):
-  s = attr.evolve(settings, conflicting_file_strategy='delete')
+  s = attr.evolve(settings, conflicting_file_strategy='replace')
   bashrcpath = df_paths.home_dir.joinpath('.bashrc')
   contents = 'export THIS_IS_ONE=1'
   bashrcpath.write_text(contents, encoding='utf8')

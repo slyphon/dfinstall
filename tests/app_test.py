@@ -1,15 +1,30 @@
 import json
 import os
+import logging
 
 import cattr
 import pytest
 from click.testing import Result
 
-from dfi import app
-from dfi.config import Settings, FileGroup
+# mypy: ignore-missing-imports
+from dfi import app                         # type: ignore
+from dfi.config import Settings, FileGroup  # type: ignore
 
 from .conftest import chdir
 
+log = logging.getLogger(__name__)
+
+def dump_click_result(res: Result) -> None:
+  if res.stderr_bytes:
+    log.error(f"stderr: \n{res.stderr}")
+  if res.stdout_bytes:
+    log.error(f"stdout: \n{res.stdout}")
+
+  import sys
+  ei = sys.exc_info()
+  reveal_type(ei)
+
+  pass
 
 def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
   dotfiles_arg = ':'.join([
@@ -42,7 +57,7 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
     settings: Settings = cattr.structure(ser_set, Settings)
 
     assert settings.base_dir == df_paths.base_dir
-    assert settings.conflicting_file_strategy == 'delete'
+    assert settings.conflicting_file_strategy == 'replace'
     assert settings.conflicting_symlink_strategy == 'fail'
 
     assert settings.dotfiles_file_group == FileGroup(
