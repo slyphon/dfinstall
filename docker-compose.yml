@@ -1,0 +1,11 @@
+---
+version: "3.7"
+services:
+  tox:
+    build:
+      dockerfile: Dockerfile.tox
+      context: .
+    volumes:
+      - ".:/src:ro"
+    environment:
+      - "PIPENV_VERBOSITY=-1"
