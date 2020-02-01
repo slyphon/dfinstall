@@ -4,11 +4,10 @@ import logging
 
 import cattr
 import pytest
-from click.testing import Result
+from click.testing import Result, CliRunner
 
-# mypy: ignore-missing-imports
-from dfi import app                         # type: ignore
-from dfi.config import Settings, FileGroup  # type: ignore
+from dfi import app
+from dfi.config import Settings, FileGroup
 
 from .conftest import chdir
 
@@ -20,13 +19,7 @@ def dump_click_result(res: Result) -> None:
   if res.stdout_bytes:
     log.error(f"stdout: \n{res.stdout}")
 
-  import sys
-  ei = sys.exc_info()
-  reveal_type(ei)
-
-  pass
-
-def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
+def test_app_flag_parsing_dotfiles(df_paths, cli_runner: CliRunner):
   dotfiles_arg = ':'.join([
     str(df.relative_to(df_paths.base_dir)) for df in df_paths.dotfile_extras
   ])
@@ -36,18 +29,21 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
     result: Result = cli_runner.invoke(
       app.main,
       args=[
-        '--file-conflict-strategy=delete',
+        '--file-conflict-strategy=replace',
         '--symlink-conflict-strategy=fail',
         f'--dotfile-dir={df_paths.dotfiles_dir}',
         f'--dotfiles={dotfiles_arg}',
         '--dotfile-excludes', '.*:tux',
         '--output-flag-settings', '-',
-      ]
+      ],
+      mix_stderr=False,
     )
     # yapf: enable
 
+    dump_click_result(result)
     if result.exit_code != 0:
-      raise result.exception from None
+      if result.exception is not None:
+        raise result.exception from None
 
     assert result.exit_code == 0
     assert len(result.output) > 0
@@ -60,7 +56,9 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
     assert settings.conflicting_file_strategy == 'replace'
     assert settings.conflicting_symlink_strategy == 'fail'
 
-    assert settings.dotfiles_file_group == FileGroup(
+    assert len(settings.file_groups) == 2
+
+    assert settings.file_groups[0] == FileGroup(
       base_dir=df_paths.base_dir,
       dirs=[df_paths.dotfiles_dir],
       globs=dotfiles_arg.split(":"),
@@ -68,7 +66,7 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner):
       target_dir=df_paths.home_dir
     )
 
-    assert settings.binfiles_file_group == FileGroup(
+    assert settings.file_groups[1] == FileGroup(
       base_dir=df_paths.base_dir,
       dirs=[],
       globs=None,

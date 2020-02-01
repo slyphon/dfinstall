@@ -43,6 +43,8 @@ class Result:
   exit_code: int = ...
   exception: Optional[Exception] = ...
   exc_info: TSysExcInfo = ...
+  stdout_bytes: bytes = ...
+  stderr_bytes: bytes = ...
 
   def __init__(
     self,
@@ -56,6 +58,14 @@ class Result:
 
   @property
   def output(self) -> str:
+    ...
+
+  @property
+  def stdout(self) -> str:
+    ...
+
+  @property
+  def stderr(self) -> str:
     ...
 
 
@@ -93,7 +103,7 @@ class CliRunner:
     env: Optional[TEnv] = ...,
     catch_exceptions: bool = ...,
     color: bool = ...,
-    **extra: Dict[Any, Any]
+    **extra: Any
   ):
     ...
 

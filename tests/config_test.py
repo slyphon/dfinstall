@@ -8,13 +8,12 @@ import attr
 import cattr
 import pytest
 
-# mypy: ignore-missing-imports
-from dfi.config import FileGroup, Settings  # type: ignore # noqa
-from dfi.dotfile import LinkData  # type: ignore # noqa
-from dfi.exceptions import (BackupFailed, FatalConflict,  # type: ignore
+from dfi.config import FileGroup, Settings
+from dfi.dotfile import LinkData
+from dfi.exceptions import (BackupFailed, FatalConflict,
                             FilesystemConflictError, TooManySymbolicLinks)
-from dfi.fs import apply_settings  # type: ignore
-from dfi import fs # type: ignore
+from dfi.fs import apply_settings
+from dfi import fs
 
 from .conftest import FixturePaths
 
