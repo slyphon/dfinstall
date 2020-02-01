@@ -1,0 +1,21 @@
+[defaults]
+
+conflicting_file_strategy = 'backup'
+conflicting_symlink_strategy = 'replace'
+base_dir = '.'
+link_prefix = ''
+
+[[file_groups]]
+target_dir = '$HOME'
+dirs = ["dotfiles"]
+# recursive globs '**' are _not_ supported
+globs = ["dotfile_linux/*"]
+# '.*' is excluded by default
+excludes = ["gnome"]
+link_prefix = '.'  # these are dotfiles, so add the prefix
+
+[[file_groups]]
+target_dir = '$HOME/.local/bin'
+dirs = ['bin']
+globs = ['bin_darwin/pbcopy', 'bin_darwin/launched']
+excludes = ['.*']

@@ -18,6 +18,8 @@ pytest-mypy = "*"
 pytest-cov = "*"
 coverage = {extras = ["toml"],version = "*"}
 pytest-xdist = "*"
+pipenv-setup = "*"
+tox-pyenv = "*"
 
 [packages]
 click = "*"  # shiv depends on this restriction
@@ -27,6 +29,8 @@ python-dotenv = "*"
 more-itertools = "*"
 arrow = "*"
 typing-extensions = "*"
+toml = "*"
+marshmallow = "*"
 
 [requires]
 python_version = "3.6"
