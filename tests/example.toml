@@ -4,6 +4,7 @@ conflicting_file_strategy = 'backup'
 conflicting_symlink_strategy = 'replace'
 base_dir = '.'
 link_prefix = ''
+excludes = ['.*']
 
 [[file_groups]]
 target_dir = '$HOME'
