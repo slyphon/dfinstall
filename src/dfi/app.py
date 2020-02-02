@@ -192,14 +192,16 @@ def main(
         dirs=dotfile_dirs,
         globs=dotfiles,
         excludes=dotfile_excludes,
-        target_dir=dotfile_target_dir
+        target_dir=dotfile_target_dir,
+        on_conflict=OnConflict(),
       ),
       FileGroup(
         base_dir=base_path,
         dirs=binfile_dirs,
         globs=binfiles,
         excludes=binfile_excludes,
-        target_dir=binfile_target_dir
+        target_dir=binfile_target_dir,
+        on_conflict=OnConflict(),
       ),
     ]
   )

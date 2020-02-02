@@ -26,7 +26,8 @@ FG = FileGroup(
   dirs=[Path("/home/foo/settings"), Path("/home/bar/settings")],
   globs=["xyz", "abc"],
   excludes=["*bad", ".ignore*"],
-  target_dir=Path("/home/foo")
+  target_dir=Path("/home/foo"),
+  on_conflict=OnConflict(),
 )
 
 SETTINGS = Settings(on_conflict=OnConflict(), base_dir=BASE_DIR, file_groups=[FG])
@@ -35,14 +36,16 @@ T = TypeVar('T')
 
 
 def test_FileGroup_json_round_trip():
-  assert FileGroup(**FileGroupSchema.loads(FileGroupSchema.dumps(FG))) == FG
+  assert FileGroupSchema.loads(FileGroupSchema.dumps(FG)) == FG
 
 
 def test_Settings_round_trip():
   a = SettingsSchema.dumps(SETTINGS)
-  b = SettingsSchema.loads(a)
+  b: Settings = SettingsSchema.loads(a)
 
-  assert Settings(**b) == SETTINGS
+  assert b.file_groups == SETTINGS.file_groups
+
+  assert b == SETTINGS
 
 
 def test_Settings_vpaths(df_paths: FixturePaths):
@@ -94,6 +97,7 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
         globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
         excludes=['.*', 'gnome'],
         link_prefix='.',
+        on_conflict=OnConflict(),
       ),
       FileGroup(
         base_dir=df_paths.base_dir,
@@ -101,6 +105,7 @@ def test_Settings_with_globs_has_correct_precedence(df_paths: FixturePaths):
         dirs=[],
         globs=None,
         excludes=None,
+        on_conflict=OnConflict(),
       ),
     ],
   )
@@ -141,6 +146,7 @@ def settings(df_paths: FixturePaths):
         globs=[str(g.relative_to(df_paths.base_dir)) for g in df_paths.dotfile_extras],
         excludes=['.*', 'gnome'],
         link_prefix='.',
+        on_conflict=OnConflict(),
       ),
       FileGroup(
         base_dir=df_paths.base_dir,
@@ -148,8 +154,10 @@ def settings(df_paths: FixturePaths):
         dirs=[Path('bin')],
         globs=None,
         excludes=['.*'],
+        on_conflict=OnConflict(),
       ),
     ],
+    on_conflict=OnConflict(),
   )
 
 

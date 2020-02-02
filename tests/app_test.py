@@ -7,7 +7,7 @@ import pytest
 from click.testing import Result, CliRunner
 
 from dfi import app
-from dfi.config import Settings, FileGroup
+from dfi.config import Settings, FileGroup, OnConflict
 
 from .conftest import chdir
 
@@ -64,7 +64,8 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner: CliRunner):
       dirs=[df_paths.dotfiles_dir],
       globs=dotfiles_arg.split(":"),
       excludes=['.*', 'tux'],
-      target_dir=df_paths.home_dir
+      target_dir=df_paths.home_dir,
+      on_conflict=OnConflict(),
     )
 
     assert settings.file_groups[1] == FileGroup(
@@ -72,5 +73,6 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner: CliRunner):
       dirs=[],
       globs=None,
       excludes=None,
-      target_dir=df_paths.home_dir / '.local' / 'bin'
+      target_dir=df_paths.home_dir / '.local' / 'bin',
+      on_conflict=OnConflict(),
     )

@@ -1,11 +1,11 @@
 import logging
-from functools import partial
+import os
+from functools import wraps
 from itertools import chain
 from pathlib import Path
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast)
 
 import attr
-import cattr
 import toml
 from more_itertools import collapse
 from typing_extensions import Final, Literal
@@ -13,7 +13,6 @@ from typing_extensions import Final, Literal
 from . import dotfile
 from .backports import cached_property
 from .dotfile import LinkData
-from .schema import SettingsSchema
 from .strategies import (
   VALID_FILE_STRATEGIES,
   VALID_SYMLINK_STRATEGIES,
@@ -23,11 +22,14 @@ from .strategies import (
   ensure_is_symlink_strategy
 )
 
+_C = TypeVar('_C', bound=type)
+
 log = logging.getLogger(__name__)
 
 DEFAULT_EXCLUDES: Final[List[str]] = ['.*']
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+
+@attr.s(auto_attribs=True, cache_hash=True, frozen=True, kw_only=True, slots=True)
 class OnConflict:
   file: TFileStrategy = attr.ib(default='backup')
   symlink: TSymlinkStrategy = attr.ib(default='replace')
@@ -41,7 +43,7 @@ class OnConflict:
     ensure_is_symlink_strategy(value)
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True)
+@attr.s(frozen=True, slots=True, auto_attribs=True, kw_only=True, cache_hash=True)
 class FileGroup:
   # the version-controlled directory that contains the files-to-symlink
   base_dir: Path
@@ -57,6 +59,8 @@ class FileGroup:
 
   # an absolute path where the symlinks to this FileGroup's files will be created
   target_dir: Path
+
+  on_conflict: OnConflict
 
   # the prefix to use for the link path (i.e. '.')
   link_prefix: str = attr.ib(default='')
@@ -116,6 +120,7 @@ class FileGroup:
       excludes=DEFAULT_EXCLUDES[:],
       globs=None,
       link_prefix=prefix,
+      on_conflict=OnConflict(),
     )
 
   @classmethod
@@ -145,7 +150,6 @@ class EmptyFileGroup(FileGroup):
     return []
 
 
-
 def _convert_file_group(fg: List[Union[FileGroup, Dict[str, Any]]]) -> List[FileGroup]:
   def one(f: Union[FileGroup, Dict[str, Any]]) -> FileGroup:
     if isinstance(f, FileGroup):
@@ -163,7 +167,7 @@ def _convert_on_conflict(oc: Union[OnConflict, Dict[str, Any]]) -> OnConflict:
     return OnConflict(**oc)
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True, kw_only=True, cache_hash=True)
 class Settings:
   """takes flags and creates a more high-level configuration object out of them"""
 
@@ -185,11 +189,6 @@ class Settings:
       base_dir=base_dir, file_groups=[FileGroup.dotfile(base_dir), FileGroup.binfile(base_dir)]
     )
 
-  @classmethod
-  def load_config(cls, config_path: Path) -> 'Settings':
-    with config_path.open(mode="r", encoding="utf8") as fp:
-      return cls(**SettingsSchema.load(toml.load(fp)))
-
   @property
   def vpaths(self) -> List[Path]:
     return list(collapse((fg.vpaths for fg in self.file_groups), base_type=FileGroup))
@@ -197,19 +196,3 @@ class Settings:
   @property
   def link_data(self) -> List[LinkData]:
     return list(collapse((fg.link_data for fg in self.file_groups), base_type=LinkData))
-
-
-## register necessary serde with cattr
-
-
-def _unstructure_path(posx: Path) -> str:
-  return str(posx)
-
-
-def _structure_path(pstr: str, typ: Type[Path]) -> Path:
-  return Path(pstr)
-
-
-# mypy: no-disallow-untyped-calls
-cattr.register_structure_hook(Path, _structure_path)
-cattr.register_unstructure_hook(Path, _unstructure_path)

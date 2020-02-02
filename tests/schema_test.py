@@ -14,6 +14,8 @@ from dfi.schema import (Defaults, FileGroupSchema, OnConflictSchema, PathField, 
 
 from .conftest import chdir
 
+ON_CONFLICT = dict(file='replace', symlink='fail')
+
 
 class P(Schema):
   path = PathField(required=True)
@@ -29,7 +31,7 @@ def test_Defaults_basic(tmp_path: Path):
     d = Defaults.load(dict())
 
     assert d == dict(
-      on_conflict=dict(
+      on_conflict=OnConflict(
         file='backup',
         symlink='replace',
       ),
@@ -76,7 +78,8 @@ def fg_defaults() -> Dict[str, Any]:
     globs=['foo/*'],
     excludes=['.*', '*.bak'],
     target_dir=Path.cwd(),
-    link_prefix='.'
+    link_prefix='.',
+    on_conflict=ON_CONFLICT,
   )
 
 
@@ -115,15 +118,18 @@ def settings_defaults(fg_defaults):
         create_missing_target=True,
       )
     ],
-    on_conflict={
-      'file': 'backup',
-      'symlink': 'replace',
-    },
+    on_conflict=ON_CONFLICT,
   )
 
 
 # @pytest.mark.xfail(strict=False)
 def test_settings_schema(settings_defaults):
-  assert SettingsSchema.dump(
-    Settings(**SettingsSchema.load(settings_defaults))
-  ) == settings_defaults
+  stg = SettingsSchema.load(settings_defaults)
+  dumped = SettingsSchema.dump(stg)
+
+  # this should be equal to settings_defaults except the on_conflict
+  # default from the Settings level has been applied
+  dm = DotMap(settings_defaults)
+  assert len(dm.file_groups) == 1
+  dm.file_groups[0].on_conflict = ON_CONFLICT
+  assert dumped == dm.toDict()
