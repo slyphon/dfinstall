@@ -18,7 +18,6 @@ def expandpath(p: Path) -> Path:
 
 class PathField(Field):
   def _serialize(self, value: Any, attr: Any, obj: Any, **kwargs: Any) -> Optional[str]:
-    log.warning(f"_serialize called, value: {value!r}, attr: {attr!r}, obj: {obj!r}")
     if value is None:
       return None
     elif isinstance(value, str):
@@ -31,7 +30,6 @@ class PathField(Field):
       )
 
   def _deserialize(self, value: Any, attr: Any, data: Any, **kwargs: Any) -> Optional[Path]:
-    log.warning("_deserialize called")
     if value is None:
       return None
     elif isinstance(value, str):
@@ -59,7 +57,6 @@ OnConflictSchema = _OnConflict()
 
 class _Defaults(Schema):
   on_conflict = fields.Nested(_OnConflict, missing=lambda: OnConflictSchema.load({}))
-
   base_dir = PathField(missing=Path.cwd)
   link_prefix = fields.String(missing='')
   excludes = fields.List(fields.String(), missing=lambda: ['.*'])
@@ -83,7 +80,7 @@ FileGroupSchema = _FileGroup()
 
 class _Settings(Schema):
   base_dir = PathField(required=True)
-  file_groups = fields.List(fields.Nested(_FileGroup), required=True)
+  file_groups = fields.List(fields.Nested(_FileGroup))
   on_conflict = fields.Nested(_OnConflict)
 
 

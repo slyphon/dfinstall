@@ -27,6 +27,19 @@ log = logging.getLogger(__name__)
 
 DEFAULT_EXCLUDES: Final[List[str]] = ['.*']
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class OnConflict:
+  file: TFileStrategy = attr.ib(default='backup')
+  symlink: TSymlinkStrategy = attr.ib(default='replace')
+
+  @file.validator
+  def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
+    ensure_is_file_strategy(value)
+
+  @symlink.validator
+  def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
+    ensure_is_symlink_strategy(value)
+
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class FileGroup:
@@ -132,30 +145,35 @@ class EmptyFileGroup(FileGroup):
     return []
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
-class OnConflict:
-  file: TFileStrategy = attr.ib(default='backup')
-  symlink: TSymlinkStrategy = attr.ib(default='replace')
 
-  @file.validator
-  def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    ensure_is_file_strategy(value)
+def _convert_file_group(fg: List[Union[FileGroup, Dict[str, Any]]]) -> List[FileGroup]:
+  def one(f: Union[FileGroup, Dict[str, Any]]) -> FileGroup:
+    if isinstance(f, FileGroup):
+      return f
+    else:
+      return FileGroup(**f)
 
-  @symlink.validator
-  def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    ensure_is_symlink_strategy(value)
+  return [one(f) for f in fg]
+
+
+def _convert_on_conflict(oc: Union[OnConflict, Dict[str, Any]]) -> OnConflict:
+  if isinstance(oc, OnConflict):
+    return oc
+  else:
+    return OnConflict(**oc)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Settings:
   """takes flags and creates a more high-level configuration object out of them"""
 
+  # the directory containing all of the files in this collection
   base_dir: Path
-  """the directory containing all of the files in this collection"""
 
-  file_groups: List[FileGroup]
+  file_groups: List[FileGroup] = attr.ib(converter=_convert_file_group)
 
-  on_conflict: OnConflict = attr.ib()
+  # the default on_conflict setting
+  on_conflict: OnConflict = attr.ib(converter=_convert_on_conflict)
 
   @on_conflict.default
   def _on_conflict_default(self) -> OnConflict:

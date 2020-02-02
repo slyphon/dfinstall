@@ -122,7 +122,7 @@ def settings_defaults(fg_defaults):
   )
 
 
-@pytest.mark.xfail(strict=False)
+# @pytest.mark.xfail(strict=False)
 def test_settings_schema(settings_defaults):
   assert SettingsSchema.dump(
     Settings(**SettingsSchema.load(settings_defaults))

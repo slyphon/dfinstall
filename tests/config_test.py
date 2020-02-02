@@ -39,7 +39,10 @@ def test_FileGroup_json_round_trip():
 
 
 def test_Settings_round_trip():
-  assert SettingsSchema.loads(SettingsSchema.dumps(SETTINGS)) == SETTINGS
+  a = SettingsSchema.dumps(SETTINGS)
+  b = SettingsSchema.loads(a)
+
+  assert Settings(**b) == SETTINGS
 
 
 def test_Settings_vpaths(df_paths: FixturePaths):
