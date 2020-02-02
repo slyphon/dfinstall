@@ -1,27 +1,21 @@
+import json
 import os
 import os.path  # type: ignore # noqa
 from pathlib import Path
 from pprint import pprint
 from typing import List, Optional, TextIO
-import json
 
 import attr
 import cattr
 import click
 from dotenv import find_dotenv, load_dotenv
 
-from .click_ext import PATHSEP_STRING
-
-from .config import (
-  FileGroup,
-  Settings,
-  VALID_FILE_STRATEGIES,
-  VALID_SYMLINK_STRATEGIES,
-  TFileStrategy,
-  TSymlinkStrategy
-)
-
 from . import fs
+from .click_ext import PATHSEP_STRING
+from .config import FileGroup, OnConflict, Settings
+from .strategies import (
+  VALID_FILE_STRATEGIES, VALID_SYMLINK_STRATEGIES, TFileStrategy, TSymlinkStrategy
+)
 
 # mypy: disallow-untyped-decorators=False
 
@@ -188,8 +182,10 @@ def main(
 
   settings = Settings(
     base_dir=base_path,
-    conflicting_file_strategy=file_strategy,
-    conflicting_symlink_strategy=symlink_strategy,
+    on_conflict=OnConflict(
+      file=file_strategy,
+      symlink=symlink_strategy,
+    ),
     file_groups=[
       FileGroup(
         base_dir=base_path,

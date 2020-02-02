@@ -1,41 +1,29 @@
+import logging
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast, Union)
-
-from more_itertools import collapse
+from typing import (Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast)
 
 import attr
 import cattr
+import toml
+from more_itertools import collapse
 from typing_extensions import Final, Literal
 
 from . import dotfile
 from .backports import cached_property
 from .dotfile import LinkData
+from .schema import SettingsSchema
+from .strategies import (
+  VALID_FILE_STRATEGIES,
+  VALID_SYMLINK_STRATEGIES,
+  TFileStrategy,
+  TSymlinkStrategy,
+  ensure_is_file_strategy,
+  ensure_is_symlink_strategy
+)
 
-TSymlinkStrategy = Literal['replace', 'warn', 'fail']
-TFileStrategy = Union[Literal['backup'], TSymlinkStrategy]
-
-VALID_FILE_STRATEGIES: Final[List[TFileStrategy]] = ['backup', 'replace', 'warn', 'fail']
-VALID_SYMLINK_STRATEGIES: Final[List[TSymlinkStrategy]] = ['replace', 'warn', 'fail']
-
-T = TypeVar('T')
-
-
-def _literal_value_assertion(valid: List[T], obj: Any) -> T:
-  if obj in valid:
-    return cast(T, obj)
-  else:
-    raise ValueError(f"{obj!r} is not a valid value: {valid!r}")
-
-
-def ensure_is_file_strategy(any: Any) -> TFileStrategy:
-  return _literal_value_assertion(VALID_FILE_STRATEGIES, any)
-
-
-def ensure_is_symlink_strategy(any: Any) -> TSymlinkStrategy:
-  return _literal_value_assertion(VALID_SYMLINK_STRATEGIES, any)
-
+log = logging.getLogger(__name__)
 
 DEFAULT_EXCLUDES: Final[List[str]] = ['.*']
 
@@ -60,6 +48,9 @@ class FileGroup:
   # the prefix to use for the link path (i.e. '.')
   link_prefix: str = attr.ib(default='')
 
+  # if a target directory doesn't exist should we mkdir -p it?
+  create_missing_target: bool = attr.ib(default=True)
+
   @globs.validator
   def __glob_validator(
     self, _ignored: 'attr.Attribute[FileGroup]', value: Optional[List[str]]
@@ -69,6 +60,13 @@ class FileGroup:
     for v in value:
       if not isinstance(v, str):
         raise TypeError(f"globs must be strings, not {type(v)}, value: {v!r}")
+      if '**' in v:
+        raise ValueError(f"globs are evaluated non-recursively, {v!r} is an invalid pattern")
+
+  @link_prefix.validator
+  def __link_prefix_validator(self, _ignored: 'attr.Attribute[str]', value: str) -> None:
+    if '/' in value:
+      raise ValueError(f"link_prefix argument may not contain '/': {value!r}")
 
   @property
   def vpaths(self) -> List[Path]:
@@ -134,7 +132,21 @@ class EmptyFileGroup(FileGroup):
     return []
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class OnConflict:
+  file: TFileStrategy = attr.ib(default='backup')
+  symlink: TSymlinkStrategy = attr.ib(default='replace')
+
+  @file.validator
+  def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
+    ensure_is_file_strategy(value)
+
+  @symlink.validator
+  def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
+    ensure_is_symlink_strategy(value)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Settings:
   """takes flags and creates a more high-level configuration object out of them"""
 
@@ -143,27 +155,22 @@ class Settings:
 
   file_groups: List[FileGroup]
 
-  conflicting_file_strategy: str = attr.ib(default='backup')
-  conflicting_symlink_strategy: str = attr.ib(default='replace')
-  create_missing_target_dirs: bool = attr.ib(default=True)
+  on_conflict: OnConflict = attr.ib()
 
-  @conflicting_file_strategy.validator
-  def __validate_cfs(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    ensure_is_file_strategy(value)
-
-  @conflicting_symlink_strategy.validator
-  def __validate_css(self, _ignore: 'attr.Attribute[str]', value: str) -> None:
-    ensure_is_symlink_strategy(value)
+  @on_conflict.default
+  def _on_conflict_default(self) -> OnConflict:
+    return OnConflict()
 
   @classmethod
   def mk_default(cls, base_dir: Path) -> 'Settings':
     return cls(
-      base_dir=base_dir,
-      file_groups=[
-        FileGroup.dotfile(base_dir),
-        FileGroup.binfile(base_dir)
-      ]
+      base_dir=base_dir, file_groups=[FileGroup.dotfile(base_dir), FileGroup.binfile(base_dir)]
     )
+
+  @classmethod
+  def load_config(cls, config_path: Path) -> 'Settings':
+    with config_path.open(mode="r", encoding="utf8") as fp:
+      return cls(**SettingsSchema.load(toml.load(fp)))
 
   @property
   def vpaths(self) -> List[Path]:

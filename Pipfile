@@ -28,6 +28,7 @@ arrow = "*"
 typing-extensions = "*"
 toml = "*"
 marshmallow = "*"
+dotmap = "*"
 
 [requires]
 python_version = "3.6"

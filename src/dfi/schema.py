@@ -1,13 +1,16 @@
+import logging
 import os.path
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
 
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import Schema, ValidationError, fields
 from marshmallow.fields import Field
 from marshmallow.validate import OneOf
 
+from .strategies import VALID_FILE_STRATEGIES, VALID_SYMLINK_STRATEGIES
 
-from .config import VALID_FILE_STRATEGIES, VALID_SYMLINK_STRATEGIES
+log = logging.getLogger(__name__)
+
 
 def expandpath(p: Path) -> Path:
   return Path(os.path.expanduser(os.path.expandvars(p)))
@@ -15,16 +18,20 @@ def expandpath(p: Path) -> Path:
 
 class PathField(Field):
   def _serialize(self, value: Any, attr: Any, obj: Any, **kwargs: Any) -> Optional[str]:
+    log.warning(f"_serialize called, value: {value!r}, attr: {attr!r}, obj: {obj!r}")
     if value is None:
       return None
     elif isinstance(value, str):
       return value
     elif isinstance(value, Path):
-      return str(Path)
+      return str(value)
     else:
-      raise ValueError(f"could not serialize value {value!r}, attr: {attr!r}, obj: {obj!r}, kwargs: {kwargs!r}")
+      raise ValueError(
+        f"could not serialize value {value!r}, attr: {attr!r}, obj: {obj!r}, kwargs: {kwargs!r}"
+      )
 
   def _deserialize(self, value: Any, attr: Any, data: Any, **kwargs: Any) -> Optional[Path]:
+    log.warning("_deserialize called")
     if value is None:
       return None
     elif isinstance(value, str):
@@ -35,18 +42,49 @@ class PathField(Field):
       raise ValueError(f"could not deserialize value {value!r}, attr: {attr!r}, kwargs: {kwargs!r}")
 
 
-class Defaults(Schema):
-  conflicting_file_strategy = fields.String(
+class _OnConflict(Schema):
+  file = fields.String(
     validate=OneOf(VALID_FILE_STRATEGIES),
-    default='backup',
+    missing='backup',
   )
 
-  conflicting_symlink_strategy = fields.String(
+  symlink = fields.String(
     validate=OneOf(VALID_SYMLINK_STRATEGIES),
-    default='replace',
+    missing='replace',
   )
 
-  base_dir = PathField(default=Path.cwd)
-  link_prefix = fields.String(default='')
-  excludes = fields.List(fields.String(), default=lambda: ['.*'])
 
+OnConflictSchema = _OnConflict()
+
+
+class _Defaults(Schema):
+  on_conflict = fields.Nested(_OnConflict, missing=lambda: OnConflictSchema.load({}))
+
+  base_dir = PathField(missing=Path.cwd)
+  link_prefix = fields.String(missing='')
+  excludes = fields.List(fields.String(), missing=lambda: ['.*'])
+
+
+Defaults = _Defaults()
+
+
+class _FileGroup(Schema):
+  base_dir = PathField(required=True)
+  dirs = fields.List(PathField, missing=list)
+  globs = fields.List(fields.String, missing=list)
+  excludes = fields.List(fields.String, missing=list)
+  target_dir = PathField(required=True)
+  link_prefix = fields.String(missing='')
+  create_missing_target = fields.Bool(default=True)
+
+
+FileGroupSchema = _FileGroup()
+
+
+class _Settings(Schema):
+  base_dir = PathField(required=True)
+  file_groups = fields.List(fields.Nested(_FileGroup), required=True)
+  on_conflict = fields.Nested(_OnConflict)
+
+
+SettingsSchema = _Settings()
