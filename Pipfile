@@ -29,6 +29,7 @@ typing-extensions = "*"
 toml = "*"
 marshmallow = "*"
 dotmap = "*"
+deepmerge = "*"
 
 [requires]
 python_version = "3.6"

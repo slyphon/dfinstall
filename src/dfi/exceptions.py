@@ -34,3 +34,16 @@ class FatalConflict(DFIError):
   def __init__(self, path: Path, *a: Sequence[Any]) -> None:
     args = [f"Conflict at path {path} and 'fail' selected as resolution strategy", *a]
     super().__init__(*args)
+
+class ConfigError(DFIError):
+  """base class for config related issues"""
+
+class EnvNotFoundError(ConfigError):
+  def __init__(self, env_name: str, config_path: Path, *a: Sequence[Any]) -> None:
+    args = [f"Requested env name {env_name!r} not found in config file {config_path!s}"]
+    super().__init__(*args)
+
+class NoFileGroupsDefined(ConfigError):
+  def __init__(self, env_name: str, config_path: Path) -> None:
+    args = [f"No file groups were found in the env {env_name} in the file {config_path!s}"]
+    super().__init__(*args)

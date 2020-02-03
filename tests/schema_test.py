@@ -4,13 +4,14 @@ from pprint import pprint
 from typing import Any, Dict
 
 import pytest
+
 from dotmap import DotMap
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 from py._code.code import ExceptionInfo
 
 from dfi.config import OnConflict, Settings
-from dfi.schema import (Defaults, FileGroupSchema, OnConflictSchema, PathField, SettingsSchema)
+from dfi.schema import (Defaults, FileGroupSchema, OnConflictSchema, PathField, SettingsSchema, EnvSection)
 
 from .conftest import chdir
 
@@ -31,13 +32,13 @@ def test_Defaults_basic(tmp_path: Path):
     d = Defaults.load(dict())
 
     assert d == dict(
-      on_conflict=OnConflict(
+      on_conflict=dict(
         file='backup',
         symlink='replace',
       ),
       base_dir=tmp_path,
       link_prefix='',
-      excludes=['.*']
+      excludes=[],
     )
 
 
@@ -122,14 +123,28 @@ def settings_defaults(fg_defaults):
   )
 
 
-# @pytest.mark.xfail(strict=False)
 def test_settings_schema(settings_defaults):
   stg = SettingsSchema.load(settings_defaults)
   dumped = SettingsSchema.dump(stg)
+  assert dumped == settings_defaults
 
-  # this should be equal to settings_defaults except the on_conflict
-  # default from the Settings level has been applied
-  dm = DotMap(settings_defaults)
-  assert len(dm.file_groups) == 1
-  dm.file_groups[0].on_conflict = ON_CONFLICT
-  assert dumped == dm.toDict()
+
+def test_EnvSection_schema(monkeypatch):
+  monkeypatch.setenv("HOME", "/home/blah")
+
+  fg = dict(
+    base_dir="$HOME/.settings",
+    dirs=['dotfiles'],
+    globs=['foo/*'],
+    excludes=['*.bak'],
+    target_dir=str("~/target"),
+    link_prefix='.',
+    create_missing_target=True,
+  )
+
+  d = EnvSection.load(dict(file_groups=[fg]))
+  fgs = d['file_groups']
+  assert len(fgs) == 1
+  fg: FileGroup = fgs[0]
+  assert fg['base_dir'] == Path("/home/blah/.settings")
+  assert fg['target_dir'] == Path("/home/blah/target")

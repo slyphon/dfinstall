@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1e2c6ed3a606600f6ebeb3062f8fab4b1e1dd992b891f94d360c24ea430f2b57"
+            "sha256": "02dd1f922cfa31a99cb941d50170a4560cd5e34d8fbb939aae2183412b69e952"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -48,6 +48,14 @@
             "index": "pypi",
             "version": "==7.0"
         },
+        "deepmerge": {
+            "hashes": [
+                "sha256:3d37f739e74e8a284ee0bd683daaef88acc8438ba048545aefb87ade695a2a34",
+                "sha256:ae23dd76d3c0d22d33a3fd3980c92d3f0773e4affb48d9b341847d0b0a24e8f8"
+            ],
+            "index": "pypi",
+            "version": "==0.1.0"
+        },
         "dotmap": {
             "hashes": [
                 "sha256:891371a8b037b0dec645ad7a78b4e2740e3529bf596273fda37b77a086a3c72c",
@@ -58,11 +66,11 @@
         },
         "marshmallow": {
             "hashes": [
-                "sha256:0ba81b6da4ae69eb229b74b3c741ff13fe04fb899824377b1aff5aaa1a9fd46e",
-                "sha256:3e53dd9e9358977a3929e45cdbe4a671f9eff53a7d6a23f33ed3eab8c1890d8f"
+                "sha256:7669b944d6233b81f68739d5826f1176c3841cc31cf6b856841083b5a72f5ca9",
+                "sha256:c9d277f6092f32300395fb83d343be9f61b5e99d66d22bae1e5e7cd82608fee6"
             ],
             "index": "pypi",
-            "version": "==3.3.0"
+            "version": "==3.4.0"
         },
         "more-itertools": {
             "hashes": [

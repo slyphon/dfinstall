@@ -52,19 +52,24 @@ class _OnConflict(Schema):
     missing='replace',
   )
 
+
+OnConflictSchema = _OnConflict()
+
+
+class _OnConflictFactory(_OnConflict):
   @post_load
   def _mk_on_conflict(self, data: Dict[str, Any], **kw: Any) -> OnConflict:
     return OnConflict(**data)
 
 
-OnConflictSchema = _OnConflict()
+OnConflictFactory = _OnConflictFactory()
 
 
 class _Defaults(Schema):
   on_conflict = fields.Nested(_OnConflict, missing=lambda: OnConflictSchema.load({}))
   base_dir = PathField(missing=Path.cwd)
   link_prefix = fields.String(missing='')
-  excludes = fields.List(fields.String(), missing=lambda: ['.*'])
+  excludes = fields.List(fields.String(), missing=list, default=list)
 
 
 Defaults = _Defaults()
@@ -80,11 +85,26 @@ class _FileGroup(Schema):
   create_missing_target = fields.Bool(default=True)
   on_conflict = fields.Nested(_OnConflict)
 
-  @post_load
-  def _mk_file_group(self, data: Dict[str, Any], **kw: Any) -> FileGroup:
-    return FileGroup(**data)
 
 FileGroupSchema = _FileGroup()
+
+
+class _FileGroupFactory(_FileGroup):
+  @post_load
+  def _mk_file_group(self, data: Dict[str, Any], **kw: Any) -> FileGroup:
+    if 'on_conflict' in data and isinstance(data['on_conflict'], dict):
+      data['on_conflict'] = OnConflict(**data['on_conflict'])
+    return FileGroup(**data)
+
+
+FileGroupFactory = _FileGroupFactory()
+
+
+class _EnvSection(Schema):
+  file_groups = fields.List(fields.Nested(_FileGroup))
+
+
+EnvSection = _EnvSection()
 
 
 # mypy: allow-any-decorated
@@ -93,36 +113,19 @@ class _Settings(Schema):
   file_groups = fields.List(fields.Nested(_FileGroup))
   on_conflict = fields.Nested(_OnConflict)
 
-  @pre_load
-  def _pre_load_settings(self, data: Dict[str, Any], **kw: Any) -> Dict[str, Any]:
-    if 'on_conflict' in data:
-      default_on_conflict = data['on_conflict']
-    else:
-      default_on_conflict = data['on_conflict'] = OnConflict()
 
-    if 'file_groups' in data:
-      for fgdict in data['file_groups']:
-        if 'on_conflict' not in fgdict:
-          fgdict.update(dict(on_conflict=default_on_conflict))
-
-    return data
+SettingsSchema = _Settings()
 
 
+class _SettingsFactory(_Settings):
+  """this is equivalent to _Settings but it returns a Settings struct after validation"""
 
   @post_load
   def _mk_settings(self, data: Dict[str, Any], **kw: Dict[str, Any]) -> Settings:
-    default_on_conflict: OnConflict
-
-    if 'on_conflict' in data:
-      default_on_conflict = data['on_conflict']
-    else:
-      default_on_conflict = data['on_conflict'] = OnConflict()
-
     if 'file_groups' in data:
-      for fgdict in data['file_groups']:
-        pass
+      data['file_groups'] = [FileGroupFactory.load(fgdict) for fgdict in data['file_groups']]
 
     return Settings(**data)
 
 
-SettingsSchema = _Settings()
+SettingsFactory = _SettingsFactory()

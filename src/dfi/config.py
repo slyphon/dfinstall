@@ -22,7 +22,6 @@ from .strategies import (
   ensure_is_symlink_strategy
 )
 
-_C = TypeVar('_C', bound=type)
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +59,7 @@ class FileGroup:
   # an absolute path where the symlinks to this FileGroup's files will be created
   target_dir: Path
 
-  on_conflict: OnConflict
+  on_conflict: Optional[OnConflict] = attr.ib(default=None)
 
   # the prefix to use for the link path (i.e. '.')
   link_prefix: str = attr.ib(default='')

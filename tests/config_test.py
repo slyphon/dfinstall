@@ -15,7 +15,7 @@ from dfi.exceptions import (
   BackupFailed, FatalConflict, FilesystemConflictError, TooManySymbolicLinks
 )
 from dfi.fs import apply_settings
-from dfi.schema import FileGroupSchema, SettingsSchema
+from dfi.schema import FileGroupSchema, SettingsSchema, FileGroupFactory, SettingsFactory
 
 from .conftest import FixturePaths
 
@@ -36,12 +36,11 @@ T = TypeVar('T')
 
 
 def test_FileGroup_json_round_trip():
-  assert FileGroupSchema.loads(FileGroupSchema.dumps(FG)) == FG
-
+  assert FileGroupFactory.loads(FileGroupSchema.dumps(FG)) == FG
 
 def test_Settings_round_trip():
   a = SettingsSchema.dumps(SETTINGS)
-  b: Settings = SettingsSchema.loads(a)
+  b: Settings = SettingsFactory.loads(a)
 
   assert b.file_groups == SETTINGS.file_groups
 
