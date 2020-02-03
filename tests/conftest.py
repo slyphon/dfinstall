@@ -4,12 +4,16 @@ from itertools import chain
 from pathlib import Path
 from pprint import pprint
 from typing import ContextManager, Iterator, List, TypeVar, Union, cast
+import shutil
 
 import attr
 import cattr
 import pytest
 from click.testing import CliRunner, Result
 
+from dfi.config import Settings, OnConflict, FileGroup
+
+EXAMPLE_TOML_PATH = Path(__file__).parent.joinpath("example.toml").resolve()
 
 def ignore(*a, **kw):
   pass
@@ -54,6 +58,7 @@ class FixturePaths:
   dotfile_extras: List[Path]
   bins: List[Path]
   bin_extras: List[Path]
+  example_toml: Path
 
 
 @pytest.fixture()
@@ -90,6 +95,10 @@ def df_paths(cli_runner):
   for f in chain(dotfiles, dotfile_extras, bins, bin_extras):
     cast(Path, f).write_text(f"file: {f.name!s}", encoding='utf8')
 
+  example_toml_path = base_dir.joinpath('dfi.toml')
+
+  shutil.copy(EXAMPLE_TOML_PATH, example_toml_path)
+
   yield FixturePaths(
     tmp=tmp,
     home_dir=home_dir,
@@ -102,4 +111,36 @@ def df_paths(cli_runner):
     dotfile_extras=dotfile_extras,
     bin_extras=bin_extras,
     binfile_extras_dir=binfile_extras_dir,
+    example_toml=example_toml_path
+  )
+
+@pytest.fixture()
+def example_toml_expected(df_paths: FixturePaths, monkeypatch) -> Settings:
+  monkeypatch.setenv('HOME', str(df_paths.home_dir))
+  home_path = df_paths.home_dir
+  base_path = home_path.joinpath('.settings')
+
+  return Settings(
+    base_dir=base_path,
+    on_conflict=OnConflict(file='backup', symlink='replace'),
+    file_groups=[
+      FileGroup(
+        base_dir=base_path,
+        target_dir=home_path,
+        dirs=[Path("dotfiles")],
+        globs=['dotfile_linux/*'],
+        excludes=['gnome'],
+        link_prefix='.',
+        on_conflict=OnConflict(file='backup', symlink='replace'),
+      ),
+      FileGroup(
+        base_dir=base_path,
+        target_dir=home_path / '.local' / 'bin',
+        dirs=[Path('bin')],
+        globs=['bin_darwin/pbcopy', 'bin_darwin/launched'],
+        excludes=[],
+        link_prefix='',
+        on_conflict=OnConflict(file='backup', symlink='replace'),
+      )
+    ]
   )

@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+from typing import List
+from functools import wraps
 
 import cattr
 import pytest
@@ -8,8 +10,9 @@ from click.testing import Result, CliRunner
 
 from dfi import app
 from dfi.config import Settings, FileGroup, OnConflict
+from dfi.schema import SettingsFactory
 
-from .conftest import chdir
+from .conftest import chdir, FixturePaths
 
 log = logging.getLogger(__name__)
 
@@ -19,24 +22,14 @@ def dump_click_result(res: Result) -> None:
   if res.stdout_bytes:
     log.error(f"stdout: \n{res.stdout}")
 
-@pytest.mark.xfail(strict=False)
-def test_app_flag_parsing_dotfiles(df_paths, cli_runner: CliRunner):
-  dotfiles_arg = ':'.join([
-    str(df.relative_to(df_paths.base_dir)) for df in df_paths.dotfile_extras
-  ])
+@pytest.fixture()
+def run_app_test(df_paths: FixturePaths, cli_runner: CliRunner, example_toml_expected: Settings):
+  def callback(*args):
+    flags = ['--dump-settings', '-', *list(args)]
 
-  # yapf: disable
-  with chdir(df_paths.base_dir):
     result: Result = cli_runner.invoke(
       app.main,
-      args=[
-        '--file-conflict-strategy=replace',
-        '--symlink-conflict-strategy=fail',
-        f'--dotfile-dir={df_paths.dotfiles_dir}',
-        f'--dotfiles={dotfiles_arg}',
-        '--dotfile-excludes', '.*:tux',
-        '--output-flag-settings', '-',
-      ],
+      args=flags,
       mix_stderr=False,
     )
     # yapf: enable
@@ -48,31 +41,23 @@ def test_app_flag_parsing_dotfiles(df_paths, cli_runner: CliRunner):
 
     assert result.exit_code == 0
     assert len(result.output) > 0
+    loaded = SettingsFactory.loads(result.output)
+    ex = example_toml_expected
 
-    ser_set = json.loads(result.output)
+    assert loaded.base_dir == ex.base_dir
+    assert loaded.on_conflict == ex.on_conflict
+    assert len(loaded.file_groups) == 2
+    assert loaded.file_groups[0] == ex.file_groups[0]
+    assert loaded.file_groups[1] == ex.file_groups[1]
+  return callback
 
-    settings: Settings = cattr.structure(ser_set, Settings)
+def test_config_loading_with_explicit_flag(df_paths, run_app_test):
+  run_app_test('--config-file', str(df_paths.example_toml))
 
-    assert settings.base_dir == df_paths.base_dir
-    assert settings.on_conflict.file == 'replace'
-    assert settings.on_conflict.symlink == 'fail'
+def test_config_loading_with_env_var(monkeypatch, df_paths, run_app_test):
+  monkeypatch.setenv("DFI_CONFIG_FILE", str(df_paths.example_toml))
+  run_app_test()
 
-    assert len(settings.file_groups) == 2
-
-    assert settings.file_groups[0] == FileGroup(
-      base_dir=df_paths.base_dir,
-      dirs=[df_paths.dotfiles_dir],
-      globs=dotfiles_arg.split(":"),
-      excludes=['.*', 'tux'],
-      target_dir=df_paths.home_dir,
-      on_conflict=OnConflict(),
-    )
-
-    assert settings.file_groups[1] == FileGroup(
-      base_dir=df_paths.base_dir,
-      dirs=[],
-      globs=None,
-      excludes=None,
-      target_dir=df_paths.home_dir / '.local' / 'bin',
-      on_conflict=OnConflict(),
-    )
+def test_config_loading_from_default_config_file_in_cwd(df_paths, run_app_test):
+  with chdir(df_paths.base_dir):
+    run_app_test()

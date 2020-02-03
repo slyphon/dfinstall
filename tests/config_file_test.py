@@ -2,38 +2,13 @@ from pathlib import Path
 from dfi import config_file
 from dfi.config import Settings, OnConflict, FileGroup
 
+from .conftest import FixturePaths
+
 EXAMPLE_TOML_PATH = Path(__file__).resolve().parent.joinpath('example.toml')
 
-def test_load_example(monkeypatch):
-  monkeypatch.setenv('HOME', '/home/foo')
-  home_path = Path('/home/foo')
-  base_path = home_path.joinpath('.settings')
-
+def test_load_example(monkeypatch, example_toml_expected: Settings, df_paths: FixturePaths):
   stgs: Settings = config_file.load(EXAMPLE_TOML_PATH, "standard")
-  expect = Settings(
-    base_dir=base_path,
-    on_conflict=OnConflict(file='backup', symlink='replace'),
-    file_groups=[
-      FileGroup(
-        base_dir=base_path,
-        target_dir=home_path,
-        dirs=[Path("dotfiles")],
-        globs=['dotfile_linux/*'],
-        excludes=['gnome'],
-        link_prefix='.',
-        on_conflict=OnConflict(file='backup', symlink='replace'),
-      ),
-      FileGroup(
-        base_dir=base_path,
-        target_dir=home_path / '.local' / 'bin',
-        dirs=[Path('bin')],
-        globs=['bin_darwin/pbcopy', 'bin_darwin/launched'],
-        excludes=[],
-        link_prefix='',
-        on_conflict=OnConflict(file='backup', symlink='replace'),
-      )
-    ]
-  )
+  expect = example_toml_expected
   assert stgs.base_dir == expect.base_dir
   assert stgs.on_conflict == expect.on_conflict
 

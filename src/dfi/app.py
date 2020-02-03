@@ -4,6 +4,7 @@ import os.path  # type: ignore # noqa
 from pathlib import Path
 from pprint import pprint
 from typing import List, Optional, TextIO
+from textwrap import dedent
 
 import attr
 import cattr
@@ -12,104 +13,50 @@ from dotenv import find_dotenv, load_dotenv
 
 from . import fs
 from .click_ext import PATHSEP_STRING
+from . import config_file as _config_file_mod
 from .config import FileGroup, OnConflict, Settings
-from .strategies import (
-  VALID_FILE_STRATEGIES, VALID_SYMLINK_STRATEGIES, TFileStrategy, TSymlinkStrategy
-)
-
-# mypy: disallow-untyped-decorators=False
+from .schema import SettingsFactory
 
 
+def _strip_help(text: str) -> str:
+  return dedent(text).replace("\n", " ").rstrip()
+
+# mypy: allow-untyped-decorators
 @click.command()
 @click.option(
-  '-b',
-  '--base-path',
-  type=click.Path(exists=True, dir_okay=True, file_okay=False, resolve_path=True, allow_dash=False),
-  help="the directory above which the dotfile symlinks (by default) will be created",
-  default=lambda: os.getcwd()
+  '--dump-settings',
+  help="""dumps a configuration in json that matches the flags given to the path provided (or stdout for -) and exits""",
+  type=click.File(mode='w', encoding='utf8'), # type: ignore
+  hidden=True,
 )
 @click.option(
-  '-F',
-  '--file-conflict-strategy',
-  'file_strategy',
-  type=click.Choice(VALID_FILE_STRATEGIES),
-  help="a strategy to resolve conflicts when a dest exists and is a file", # type: ignore # wtf?
-  default='backup',
+  "-p", "--profile",
+  default='standard',
+  allow_from_autoenv=True,
+  show_envvar=True,
+  help=_strip_help("""\
+    The profile to load from the config file. Should be the name
+    of a configuration key that defines at least one file_group to create
+    symlinks for. Can also be set with the DFI_PROFILE environment variable.
+    If this option is not set, the 'standard' profile will be used. See the
+    main help for an explanation of the standard profile.
+    """),
 )
 @click.option(
-  '-S',
-  '--symlink-conflict-strategy',
-  'symlink_strategy',
-  type=click.Choice(VALID_SYMLINK_STRATEGIES),
-  help="a strategy to resolve conflicts when a dest exists and is a symlink",
-  default='replace',
-)
-@click.option(
-  '--dotfile-dir',
-  'dotfile_dirs',
-  type=click.Path(exists=True, dir_okay=True, file_okay=False, resolve_path=True, allow_dash=False),
-  help='create dot-prefixed symlinks for all dirents in the given directory',
-  multiple=True,
-)
-@click.option(
-  '--dotfiles',
-  type=PATHSEP_STRING,
-  help='a :-separated list of globs, relative to the base_dir, to create symlinks for'
-)
-@click.option(
-  '--dotfile-excludes',
-  type=PATHSEP_STRING,
-  help='a :-separated list of fnmatch globs that excludes certain entries collected paths'
-)
-@click.option(
-  '--dotfile-target-dir',
-  type=click.Path(dir_okay=True, file_okay=False, resolve_path=True, allow_dash=False),
-  help='the directory in which we will create the dotfiles',
-  default=lambda: os.path.dirname(os.getcwd())
-)
-@click.option(
-  '--binfile-dir',
-  'binfile_dirs',
-  type=click.Path(exists=True, dir_okay=True, file_okay=False, resolve_path=True, allow_dash=False),
-  help='create non-dot-prefixed from dirents in this directory',
-  multiple=True,
-)
-@click.option(
-  '--binfiles',
-  type=PATHSEP_STRING,
-  help='a path-separated (:) list of globs, relative to the base_dir, to create symlinks for',
-)
-@click.option(
-  '--binfile-excludes',
-  type=PATHSEP_STRING,
-  help='a :-separated list of fnmatch globs that excludes certain entries the collcted paths',
-)
-@click.option(
-  '--binfile-target-dir',
-  type=click.Path(dir_okay=True, file_okay=False, resolve_path=True, allow_dash=False),
-  help='the directory in which we will create the bin links',
-  default=lambda: str(Path.cwd().parent.joinpath(".local", "bin")),
-)
-@click.option(
-  '--output-flag-settings',
-  help="""dumps a configuration in json that matches the flags
-    given to the path provided (or stdout for -) and exits""",
-  type=click.File(mode='w', encoding='utf8'),
+  '-f', '--config-file',
+  help=_strip_help("""\
+    path to the config file to use, by default use "dfi.toml" in the current directory.
+    Can also be set using the DFI_CONFIG_FILE environment variable
+  """),
+  type=click.File(mode='r', encoding='utf8'),
+  default='dfi.toml',
+  envvar='DFI_CONFIG_FILE',
 )
 def main(
-  base_path: Path,
-  file_strategy: TFileStrategy,
-  symlink_strategy: TSymlinkStrategy,
-  dotfile_dirs: List[Path],
-  dotfiles: List[str],
-  dotfile_excludes: List[str],
-  dotfile_target_dir: Path,
-  binfile_dirs: List[Path],
-  binfiles: List[str],
-  binfile_excludes: List[str],
-  binfile_target_dir: Path,
-  output_flag_settings: Optional[TextIO]
-):
+  config_file: TextIO,
+  profile: str,
+  dump_settings: Optional[TextIO]
+) -> None:
   """\
     The purpose of this utility is to keep configuration files and directories
     under source control in a single directory, then symlink them into place.
@@ -180,34 +127,10 @@ def main(
     * 'fail': stop processing and report an error
   """
 
-  settings = Settings(
-    base_dir=base_path,
-    on_conflict=OnConflict(
-      file=file_strategy,
-      symlink=symlink_strategy,
-    ),
-    file_groups=[
-      FileGroup(
-        base_dir=base_path,
-        dirs=dotfile_dirs,
-        globs=dotfiles,
-        excludes=dotfile_excludes,
-        target_dir=dotfile_target_dir,
-        on_conflict=OnConflict(),
-      ),
-      FileGroup(
-        base_dir=base_path,
-        dirs=binfile_dirs,
-        globs=binfiles,
-        excludes=binfile_excludes,
-        target_dir=binfile_target_dir,
-        on_conflict=OnConflict(),
-      ),
-    ]
-  )
+  settings = _config_file_mod.load(config_file, profile)
 
-  if output_flag_settings is not None:
-    output_flag_settings.write(json.dumps(cattr.unstructure(settings)))
+  if dump_settings is not None:
+    dump_settings.write(SettingsFactory.dumps(settings))
     return
 
   run(settings)
