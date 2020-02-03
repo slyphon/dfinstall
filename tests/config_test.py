@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 from pathlib import Path
@@ -255,15 +256,15 @@ def test_symlink_conflict_warn(df_paths: FixturePaths, settings: Settings, caplo
   bashrcpath = df_paths.home_dir.joinpath('.bashrc')
   link_data = "settings/dotfiles/WHAT"
   bashrcpath.symlink_to(link_data)
-  apply_settings(s)
-  assert os.readlink(bashrcpath) == link_data
 
-  rtup: Sequence[Tuple[str, int, str]] = caplog.record_tuples
-  assert len(rtup) >= 1
-  file, line, msg = next((t for t in rtup if t[0] == "dfi.fs"))
+  with caplog.at_level(logging.WARNING):
+    apply_settings(s)
+    assert os.readlink(bashrcpath) == link_data
+    assert len(caplog.messages) == 1
+    msg = caplog.messages[0]
 
-  assert msg.startswith("File location")
-  assert msg.endswith("'warn' strategy selected, continuing.")
+    assert msg.startswith("File location")
+    assert msg.endswith("'warn' strategy selected, continuing.")
 
 
 def test_symlink_conflict_fail(df_paths: FixturePaths, settings: Settings):

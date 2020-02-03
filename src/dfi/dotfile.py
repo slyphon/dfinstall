@@ -69,7 +69,7 @@ def collect(
 
   paths = collapse(chain(dirents, globbed), base_type=Path)
 
-  cleaned = [x for x in paths if not any_excludes_match(x) and x.exists()]
+  cleaned = [x for x in paths if not any_excludes_match(x) and x.exists() and not x.name.startswith(".")]
 
   return sorted(cleaned)
 
@@ -87,7 +87,6 @@ def find_common_root(a: Path, b: Path) -> Optional[Path]:
   _assert_is_absolute(b)
 
   while True:
-    log.debug(f"a: {a}, b: {b}")
     if a == _ROOT or b == _ROOT:
       return None
     elif a == b:

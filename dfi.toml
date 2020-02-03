@@ -1,45 +1,21 @@
 [default]
 
-# if a link path already exists and is a file, employ
-# the given strategy for resolving the conflict.
-#
-# 'backup': move the file to a unique dated backup
-# location and create the symlink
-#
-# 'replace': just delete the file and create the symlink
-#
-# 'warn': then print a warning that the conflict exists and
-# continue.
-#
-# 'fail': then stop processing and report an error.
-#
-conflicting_file_strategy = 'backup'
+base_dir = '$HOME/.settings'
 
-# if the link path already exists and is a symlink, employ
-# one of the following strategies:
-#
-# 'replace': assume we own the symlink and recreate it pointing
-# to the target
-#
-# 'warn': print a warning that the conflict exists and continue
-#
-# 'fail': stop processing and report an error
-conflicting_symlink_strategy = 'replace'
+[default.on_conflict]
+file = 'backup'
+symlink = 'replace'
 
-# The desired location of the symlinks. the default is
-# the special value %CWD_PARENT% which indicates the parent
-# of the current working directory should be used. Otherwise
-# this must point to a valid and existing absolute path to a
-# directory
-dest_dir = '%CWD_PARENT%'
+[[standard.file_groups]]
+target_dir = '$HOME'
+dirs = ["dotfiles"]
+# recursive globs '**' are _not_ supported
+globs = []
+# '.*' is excluded by default
+excludes = []
+link_prefix = '.'  # these are dotfiles, so add the prefix
 
-[default.dotfiles]
-
-include_globs = ['dotfiles/*']
-exclude_globs = []
-
-
-[default.binfiles]
-
-include_globs = ['bin/*']
-exclude_globs = []
+[[standard.file_groups]]
+target_dir = '$HOME/.local/bin'
+dirs = ['bin']
+globs = []

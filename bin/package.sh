@@ -25,7 +25,7 @@ set -x
 
 export PATH="$HOME/.local/bin:$PATH"
 
-if [[ "${DOCKER_SETUP}" ]]; then
+if [[ "${DOCKER_SETUP:-}" ]]; then
   curl --fail -q https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
     && /usr/bin/python3 /tmp/get-pip.py \
     && pip install --no-cache-dir pipenv pex

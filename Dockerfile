@@ -43,22 +43,3 @@ RUN apt-get update \
 ENV DEBIAN_FRONTEND=dialog
 
 USER $USERNAME
-
-FROM system_python AS build_pex
-
-WORKDIR /workspaces/dfi
-
-COPY * /workspaces/dfi/
-
-RUN curl --fail -q https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-    && /usr/bin/python3 /tmp/get-pip.py \
-    && pip install --no-cache-dir pipenv pex \
-    && pipenv install --ignore-pipfile \
-    && ./bin/package.sh \
-    && /bin/bash -c 'echo "Build complete"; while true; do sleep 10; :; done'
-
-
-ENTRYPOINT []
-CMD "/bin/bash"
-
-

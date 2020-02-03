@@ -1,19 +1,20 @@
 import json
+import logging
 import os
 import os.path  # type: ignore # noqa
 from pathlib import Path
 from pprint import pprint
-from typing import List, Optional, TextIO
 from textwrap import dedent
+from typing import List, Optional, TextIO
 
 import attr
 import cattr
 import click
 from dotenv import find_dotenv, load_dotenv
 
+from . import config_file as _config_file_mod
 from . import fs
 from .click_ext import PATHSEP_STRING
-from . import config_file as _config_file_mod
 from .config import FileGroup, OnConflict, Settings
 from .schema import SettingsFactory
 
@@ -126,6 +127,9 @@ def main(
 
     * 'fail': stop processing and report an error
   """
+
+  logging.basicConfig()
+  logging.root.setLevel(logging.DEBUG)
 
   settings = _config_file_mod.load(config_file, profile)
 

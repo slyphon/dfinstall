@@ -42,6 +42,9 @@ class OnConflict:
     ensure_is_symlink_strategy(value)
 
 
+def _resolve_path(p: Path) -> Path:
+  return p.resolve()
+
 @attr.s(frozen=True, slots=True, auto_attribs=True, kw_only=True, cache_hash=True)
 class FileGroup:
   # the version-controlled directory that contains the files-to-symlink
@@ -89,11 +92,23 @@ class FileGroup:
     """return a collection of absolute source paths to be symlinked
     collects from both dirs and globs and applies the excludes before returning
     """
-    return dotfile.collect(self.base_dir, self.dirs, self.globs, self.excludes)
+    excludes: Optional[List[str]]
+    if (self.link_prefix.startswith('.')):
+      excludes = ['.*', *list(self.excludes or [])]
+    else:
+      excludes = self.excludes
+
+    return dotfile.collect(self.base_dir, self.dirs, self.globs, excludes)
 
   @property
   def _link_data_raw(self) -> List[LinkData]:
-    return [LinkData.for_path(vpath, self.target_dir, self.link_prefix) for vpath in self.vpaths]
+    target_dir: Path
+    if not self.target_dir.is_absolute():
+      target_dir = self.target_dir.relative_to(self.base_dir)
+    else:
+      target_dir = self.target_dir
+
+    return [LinkData.for_path(vpath, target_dir, self.link_prefix) for vpath in self.vpaths]
 
   @property
   def link_data(self) -> List[LinkData]:
