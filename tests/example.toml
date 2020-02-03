@@ -1,6 +1,6 @@
 [default]
 
-base_dir = '.'
+base_dir = '$HOME/.settings'
 
 [default.on_conflict]
 file = 'backup'

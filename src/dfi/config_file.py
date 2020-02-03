@@ -13,7 +13,7 @@ from deepmerge import always_merger
 
 from .config import Settings
 from .exceptions import EnvNotFoundError
-from .schema import Defaults, EnvSection, FileGroupSchema, SettingsSchema
+from .schema import Defaults, EnvSection, FileGroupSchema, SettingsFactory
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
@@ -23,18 +23,13 @@ def _merge_under(defaults: Dict[_K, _V], target: Dict[_K, _V]) -> Dict[_K, _V]:
   t = deepcopy(target)
   return cast(Dict[_K, _V], always_merger.merge(d, t))
 
-def _load_and_apply_defaults(path: Path) -> Dict[str, Any]:
+def _load_and_apply_defaults(path: Path, env_name: str) -> Dict[str, Any]:
   with path.open(mode='r', encoding='utf8') as fp:
     raw = toml.load(fp)
 
   dflt = Defaults.load(raw.get('default', {}), partial=True)
 
-  env = os.environ.get("DFI_ENV", "standard")
-  env_section = raw.get(env, None)
-
-  if env_section is None:
-    raise EnvNotFoundError(env, path)
-
+  env_section = raw.get(env_name, None)
 
   if 'file_groups' in env_section:
     for i, fg in enumerate(env_section['file_groups']):
@@ -43,6 +38,6 @@ def _load_and_apply_defaults(path: Path) -> Dict[str, Any]:
   es = EnvSection.load(env_section)
   return _merge_under(dflt, es)
 
-def load(path: Path) -> Settings:
-  data = _load_and_apply_defaults(path)
-  return cast(Settings, SettingsSchema.load(data))
+def load(path: Path, env: str) -> Settings:
+  data = _load_and_apply_defaults(path, env)
+  return cast(Settings, SettingsFactory.load(data))
